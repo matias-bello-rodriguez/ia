@@ -1,0 +1,138 @@
+<div class="d-flex flex-column gap-4">
+  <div class="card">
+    <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-start gap-3">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-book text-primary"></i>
+        <div>
+          <h6 class="mb-0">Biblioteca de Subsidios</h6>
+          <small class="text-body-secondary">Parámetros de referencia que utiliza la IA para validar</small>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-clockwise me-1"></i> Sincronizar MINVU</button>
+        <button class="btn btn-sm btn-primary"><i class="bi bi-plus me-1"></i> Agregar Subsidio</button>
+      </div>
+    </div>
+    <div class="card-body p-0 overflow-auto">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Programa</th>
+            <th>Descripción</th>
+            <th>Ahorro Min.</th>
+            <th>RSH Max.</th>
+            <th>Puntaje Corte</th>
+            <th>Tope UF</th>
+            <th>Últ. Actualización</th>
+            <th class="text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of subsidyRules; track r.id) {
+            <tr>
+              <td><span class="badge bg-secondary fw-bold font-monospace">{{ r.name }}</span></td>
+              <td class="small text-body-secondary">{{ r.description }}</td>
+              <td>
+                @if (editingRow === r.id) {
+                  <input type="text" class="form-control form-control-sm" style="width: 5rem;" [(ngModel)]="r.minSavings">
+                } @else {
+                  <span class="fw-medium">{{ r.minSavings }}</span>
+                }
+              </td>
+              <td>
+                @if (editingRow === r.id) {
+                  <input type="text" class="form-control form-control-sm" style="width: 4rem;" [(ngModel)]="r.maxRSH">
+                } @else {
+                  {{ r.maxRSH }}
+                }
+              </td>
+              <td>
+                @if (editingRow === r.id) {
+                  <input type="number" class="form-control form-control-sm" style="width: 6rem;" [(ngModel)]="r.cutoffScore">
+                } @else {
+                  <span class="font-monospace">{{ r.cutoffScore | number }}</span>
+                }
+              </td>
+              <td>{{ r.maxUF }}</td>
+              <td>
+                <div class="small">{{ r.lastUpdate }}</div>
+                <div class="small text-body-secondary" style="font-size: 10px;">{{ r.source }}</div>
+              </td>
+              <td class="text-end">
+                @if (editingRow === r.id) {
+                  <button type="button" class="btn btn-sm btn-primary" (click)="saveEdit()">
+                    <i class="bi bi-check2 me-1"></i> Guardar
+                  </button>
+                } @else {
+                  <button type="button" class="btn btn-sm btn-link p-0" (click)="startEdit(r.id)">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header d-flex align-items-center gap-2">
+      <i class="bi bi-gear text-primary"></i>
+      <div>
+        <h6 class="mb-0">Reglas de Validación de Documentos</h6>
+        <small class="text-body-secondary">Parámetros que la IA utiliza para aprobar o rechazar documentos</small>
+      </div>
+    </div>
+    <div class="card-body p-0 overflow-auto">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Documento</th>
+            <th>Vigencia Máxima</th>
+            <th>Obligatorio</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (rule of documentRules; track rule.name) {
+            <tr>
+              <td class="fw-medium">{{ rule.name }}</td>
+              <td>{{ rule.maxAge === 0 ? 'Debe estar vigente' : rule.maxAge + ' ' + rule.unit }}</td>
+              <td><span class="badge" [class.bg-primary]="rule.required" [class.bg-secondary]="!rule.required">{{ rule.required ? 'Obligatorio' : 'Opcional' }}</span></td>
+              <td><span class="small text-success"><i class="bi bi-robot me-1"></i> IA Configurada</span></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header d-flex align-items-center gap-2">
+      <i class="bi bi-robot text-primary"></i>
+      <div>
+        <h6 class="mb-0">Estado del Asistente IA</h6>
+        <small class="text-body-secondary">Configuración y estado de los módulos de inteligencia artificial</small>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        @for (ai of aiModules; track ai.module) {
+          <div class="col-12 col-sm-6 col-lg-4">
+            <div class="border rounded p-3 d-flex justify-content-between align-items-center">
+              <div>
+                <div class="fw-medium">{{ ai.module }}</div>
+                <div class="small text-body-secondary">{{ ai.version }}</div>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="rounded-circle bg-success" style="width: 8px; height: 8px;"></span>
+                <span class="small text-success">{{ ai.status }}</span>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>

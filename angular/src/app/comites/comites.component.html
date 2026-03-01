@@ -1,0 +1,134 @@
+<div class="d-flex flex-column gap-4">
+  <ul class="nav nav-tabs">
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'projects'" (click)="activeTab = 'projects'" href="javascript:void(0)">
+        <i class="bi bi-geo-alt me-1"></i> Proyectos
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'beneficiaries'" (click)="activeTab = 'beneficiaries'" href="javascript:void(0)">
+        <i class="bi bi-people me-1"></i> Beneficiarios
+      </a>
+    </li>
+  </ul>
+
+  @if (activeTab === 'projects') {
+    <div class="row g-4">
+      <div class="col-12 col-lg-6">
+        <div class="card h-100">
+          <div class="card-header">
+            <h6 class="mb-0">Geolocalización de Proyectos</h6>
+            <small class="text-body-secondary">Mapa interactivo de ubicaciones</small>
+          </div>
+          <div class="card-body">
+            <div class="border border-2 border-dashed rounded d-flex flex-column align-items-center justify-content-center bg-light" style="min-height: 280px;">
+              <i class="bi bi-geo-alt fs-1 text-body-secondary"></i>
+              <span class="fw-medium text-body-secondary">Mapa Interactivo</span>
+              <span class="small text-body-secondary">Región Metropolitana, Chile</span>
+              <div class="d-flex flex-wrap gap-2 mt-2">
+                @for (p of projects; track p.id) {
+                  <span class="badge bg-light text-dark border"><i class="bi bi-geo-alt me-1"></i>{{ p.name }}</span>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-6">
+        <div class="row g-3">
+          @for (project of projects; track project.id) {
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                      <h6 class="mb-0">{{ project.name }}</h6>
+                      <small class="text-body-secondary">{{ project.location }}</small>
+                    </div>
+                    <span class="badge" [class.bg-danger]="project.classification === 'Campamento'" [class.bg-success]="project.classification !== 'Campamento'">
+                      <i class="bi bi-stars me-1"></i>{{ project.type }}
+                    </span>
+                  </div>
+                  <div class="d-flex justify-content-between small mb-1">
+                    <span class="text-body-secondary">Clasificación IA:</span>
+                    <span class="badge bg-secondary">{{ project.classification }}</span>
+                  </div>
+                  <div class="d-flex justify-content-between small mb-1">
+                    <span class="text-body-secondary">Beneficiarios:</span>
+                    <span class="fw-medium">{{ project.beneficiaries }}</span>
+                  </div>
+                  <div class="d-flex justify-content-between small mb-1">
+                    <span class="text-body-secondary">Avance General:</span>
+                    <span class="fw-medium">{{ project.progress }}%</span>
+                  </div>
+                  <div class="progress" style="height: 6px;">
+                    <div class="progress-bar" [style.width.%]="project.progress"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (activeTab === 'beneficiaries') {
+    <div class="card">
+      <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-start gap-3">
+        <div>
+          <h6 class="mb-0">Panel de Beneficiarios</h6>
+          <small class="text-body-secondary">Clasificación y match de subsidios por IA</small>
+        </div>
+        <div class="input-group" style="max-width: 280px;">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" class="form-control form-control-sm" placeholder="Buscar por nombre, RUT o comité..." [(ngModel)]="search">
+        </div>
+      </div>
+      <div class="card-body p-0 overflow-auto">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Beneficiario</th>
+              <th>RUT</th>
+              <th>Comité</th>
+              <th>RSH</th>
+              <th>Ahorro</th>
+              <th class="text-center">Match IA</th>
+              <th>Subsidio Sugerido</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (b of filteredBeneficiaries; track b.rut) {
+              <tr>
+                <td class="fw-medium">{{ b.name }}</td>
+                <td class="small font-monospace">{{ b.rut }}</td>
+                <td class="text-body-secondary">{{ b.committee }}</td>
+                <td>{{ b.rsh }}</td>
+                <td>
+                  <span [class.text-danger]="toNumber(b.savings) < toNumber(b.minSavings)" [class.text-success]="toNumber(b.savings) >= toNumber(b.minSavings)">{{ b.savings }}</span>
+                  <small class="text-body-secondary"> / {{ b.minSavings }}</small>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center justify-content-center gap-2">
+                    <div class="progress flex-grow-1" style="width: 60px; height: 8px;">
+                      <div class="progress-bar" [class.bg-success]="b.matchScore >= 80" [class.bg-warning]="b.matchScore >= 60 && b.matchScore < 80" [class.bg-danger]="b.matchScore < 60" [style.width.%]="b.matchScore"></div>
+                    </div>
+                    <span class="small fw-medium">{{ b.matchScore }}%</span>
+                  </div>
+                </td>
+                <td><span class="badge bg-secondary font-monospace">{{ b.suggestedSubsidy }}</span></td>
+                <td>
+                  <span class="badge" [class.bg-success]="b.status === 'approved'" [class.bg-danger]="b.status === 'alert'" [class.bg-secondary]="b.status === 'pending'">
+                    {{ b.status === 'approved' ? 'Aprobado' : b.status === 'alert' ? 'Alerta' : 'Pendiente' }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>

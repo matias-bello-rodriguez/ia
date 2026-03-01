@@ -1,0 +1,134 @@
+<div class="d-flex flex-column gap-4">
+  <div class="row g-4">
+    <div class="col-12 col-lg-6">
+      <div class="card mb-3">
+        <div class="card-header">
+          <h6 class="mb-0">Carga de Documentos</h6>
+          <small class="text-body-secondary">Arrastra PDFs o imágenes para escanear con OCR</small>
+        </div>
+        <div class="card-body">
+          <div class="border border-2 border-primary border-opacity-25 rounded bg-primary bg-opacity-10 d-flex flex-column align-items-center justify-content-center gap-3 p-4 cursor-pointer" style="min-height: 200px;" (click)="scan()" (keydown.enter)="scan()" tabindex="0" role="button">
+            <i class="bi bi-upload display-6 text-primary"></i>
+            <p class="mb-0 fw-medium">{{ isScanning ? 'Escaneando documento...' : 'Drag & Drop o haz clic para subir' }}</p>
+            <small class="text-body-secondary">PDF, JPG, PNG - Max 10MB</small>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h6 class="mb-0">Previsualización</h6></div>
+        <div class="card-body">
+          <div class="bg-light rounded d-flex flex-column align-items-center justify-content-center gap-2" style="min-height: 200px;">
+            <i class="bi bi-eye text-body-secondary"></i>
+            <span class="small text-body-secondary">Vista previa del documento</span>
+            <span class="small font-monospace">12345678-9_DOMINIO_2026.pdf</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-robot text-primary"></i>
+            <h6 class="mb-0">Resultados de Extracción IA</h6>
+          </div>
+          <button class="btn btn-sm btn-outline-primary" (click)="scan()" [disabled]="isScanning">
+            <i class="bi bi-upc-scan me-1"></i>{{ isScanning ? 'Procesando...' : 'Visar con IA' }}
+          </button>
+        </div>
+        <div class="card-body">
+          @if (showResults) {
+            <div class="d-flex flex-column gap-2">
+              @for (f of extractionResults; track f.label) {
+                <div class="border rounded p-3">
+                  <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                      <span class="small text-body-secondary">{{ f.label }}</span>
+                      <div class="fw-medium">{{ f.value }}</div>
+                    </div>
+                    <span class="badge" [ngClass]="statusClass(f.status)">{{ statusLabel(f.status) }}</span>
+                  </div>
+                  @if (f.note) {
+                    <div class="mt-2 small rounded p-2" [class.bg-danger]="f.status === 'rejected'" [class.bg-opacity-10]="f.status === 'rejected'" [class.text-danger]="f.status === 'rejected'" [class.bg-warning]="f.status === 'alert'" [class.bg-opacity-10]="f.status === 'alert'" [class.text-warning]="f.status === 'alert'">
+                      {{ f.note }}
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="d-flex flex-column align-items-center justify-content-center gap-3 text-body-secondary" style="min-height: 200px;">
+              <div class="spinner-border text-primary"></div>
+              <span>Analizando documento con IA...</span>
+            </div>
+          }
+        </div>
+      </div>
+      @if (showResults) {
+        <div class="card">
+          <div class="card-header"><h6 class="mb-0">Resumen de Validación</h6></div>
+          <div class="card-body">
+            <div class="row g-2 text-center">
+              <div class="col-4">
+                <div class="rounded p-3 bg-success bg-opacity-10">
+                  <i class="bi bi-check-circle text-success"></i>
+                  <div class="fw-bold text-success">3</div>
+                  <small class="text-body-secondary">Aprobados</small>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="rounded p-3 bg-danger bg-opacity-10">
+                  <i class="bi bi-x-circle text-danger"></i>
+                  <div class="fw-bold text-danger">1</div>
+                  <small class="text-body-secondary">Rechazados</small>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="rounded p-3 bg-warning bg-opacity-10">
+                  <i class="bi bi-exclamation-circle text-warning"></i>
+                  <div class="fw-bold text-warning">1</div>
+                  <small class="text-body-secondary">Alertas</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-start gap-2">
+      <div>
+        <h6 class="mb-0">Cola de Documentos Visados</h6>
+        <small class="text-body-secondary">Historial de documentos procesados por la IA</small>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-calendar-check text-body-secondary"></i>
+        <select class="form-select form-select-sm" style="width: 180px;" [(ngModel)]="vigenciaFilter">
+          <option value="todos">Todos</option>
+          <option value="vigente">Vigentes</option>
+          <option value="por_vencer">Por vencer</option>
+          <option value="vencido">Vencidos</option>
+        </select>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="d-flex flex-column gap-2">
+        @for (doc of filteredQueue; track doc.name) {
+          <div class="d-flex align-items-center justify-content-between border rounded p-3">
+            <div class="d-flex align-items-center gap-3">
+              <i class="bi bi-file-pdf text-body-secondary"></i>
+              <div>
+                <div class="fw-medium font-monospace small">{{ doc.name }}</div>
+                <div class="small text-body-secondary">{{ doc.type }}</div>
+              </div>
+            </div>
+            <span class="badge" [ngClass]="statusClass(doc.status)">{{ statusLabel(doc.status) }}</span>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>
