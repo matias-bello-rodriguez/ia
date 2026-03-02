@@ -12,7 +12,9 @@ from .models import (
     Carpeta,
     Documento,
     InformeTercero,
+    LogVisado,
     ModuloIA,
+    Organizacion,
     Proyecto,
     ReglaDocumento,
     ReglaSubsidio,
@@ -42,7 +44,7 @@ class DashboardView(views.APIView):
     """
 
     def get(self, request, *args, **kwargs):
-        total_uf_proceso = Carpeta.objects.exclude(monto_uf="").count() * 100  # mock simple
+        total_uf_proceso = Carpeta.objects.exclude(monto_uf__isnull=True).count() * 100  # mock simple
         carpetas_listas = Carpeta.objects.filter(estado="listo_serviu").count()
         proyectos_construccion = Proyecto.objects.filter(estado="activo").count()
         alertas_criticas = Alerta.objects.filter(severidad="critical").count()
@@ -211,9 +213,7 @@ class VisarDocumentoView(views.APIView):
                 regla_sub = ReglaSubsidio.objects.first()
                 if regla_sub and regla_sub.ahorro_minimo_uf:
                     try:
-                        ahorro_minimo_uf = float(
-                            str(regla_sub.ahorro_minimo_uf).replace(",", ".").split()[0]
-                        )
+                        ahorro_minimo_uf = float(regla_sub.ahorro_minimo_uf)
                     except (ValueError, TypeError):
                         pass
 

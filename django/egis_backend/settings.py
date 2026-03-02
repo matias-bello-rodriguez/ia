@@ -1,20 +1,34 @@
+"""
+settings.py — Configuración principal del backend EGIS.
+
+Conexión a Supabase (PostgreSQL) mediante DATABASE_URL.
+Usa python-decouple para leer variables de entorno desde .env.
+"""
+
 import os
 from pathlib import Path
 
 import dj_database_url
-from dotenv import load_dotenv
+from decouple import Csv, config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Cargar variables de entorno desde .env (solo desarrollo)
-load_dotenv(BASE_DIR / ".env")
+# ──────────────────────────────────────────────────────────────
+# Seguridad
+# ──────────────────────────────────────────────────────────────
+SECRET_KEY = config("SECRET_KEY", default="dev-secret-key-change-me-in-production")
 
-SECRET_KEY = "dev-secret-key-change-me"
+DEBUG = config("DEBUG", default=True, cast=bool)
 
-DEBUG = True
+ALLOWED_HOSTS: list[str] = config(
+    "ALLOWED_HOSTS",
+    default="*",
+    cast=Csv(),
+)
 
-ALLOWED_HOSTS: list[str] = ["*"]
-
+# ──────────────────────────────────────────────────────────────
+# Aplicaciones instaladas
+# ──────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -27,12 +41,17 @@ INSTALLED_APPS = [
     "django_filters",
     "graphene_django",
     "drf_spectacular",
+    "corsheaders",
     # Local
     "egis_app",
 ]
 
+# ──────────────────────────────────────────────────────────────
+# Middleware
+# ──────────────────────────────────────────────────────────────
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -40,6 +59,13 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+# CORS — permitir el frontend Angular en desarrollo
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:4200",
+    cast=Csv(),
+)
 
 ROOT_URLCONF = "egis_backend.urls"
 
@@ -61,18 +87,32 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "egis_backend.wsgi.application"
 
-# Base de datos: PostgreSQL (Supabase) si existe DATABASE_URL, si no SQLite
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+# ──────────────────────────────────────────────────────────────
+# Base de datos — Supabase (PostgreSQL)
+# ──────────────────────────────────────────────────────────────
+# DATABASE_URL debe tener la forma:
+#   postgres://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
+#
+# En desarrollo se puede usar SQLite como fallback si no hay URL.
+# ──────────────────────────────────────────────────────────────
+DATABASE_URL = config("DATABASE_URL", default="")
+
+if DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=config("DB_SSL_REQUIRE", default=True, cast=bool),
+        )
     }
-}
-if os.getenv("DATABASE_URL"):
-    DATABASES["default"] = dj_database_url.config(
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = []
 
@@ -121,5 +161,5 @@ GRAPHENE = {
 }
 
 # OpenAI (conexión a API para IA: extracción OCR, validación, etc.)
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip() or None
+OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
 
