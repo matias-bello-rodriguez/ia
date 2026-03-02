@@ -1,20 +1,54 @@
 @import 'bootstrap/dist/css/bootstrap.min.css';
 
+/* ==========================================================================
+   Paleta principal OTIC / Confianza — única fuente de verdad
+   Usar estas variables en toda la app; sidebar y fondo ya las usan.
+   ========================================================================== */
 :root {
+  /* Primarios */
   --egis-primary: #173DDC;
   --egis-primary-hover: #132cb1;
-  --egis-pink: #EB4A88;
-  --egis-pink-hover: #d13a75;
+  --egis-accent: #EB4A88;
+  --egis-accent-hover: #d13a75;
+  /* Alias para compatibilidad */
+  --egis-pink: var(--egis-accent);
+  --egis-pink-hover: var(--egis-accent-hover);
+
+  /* Fondos y sidebar */
   --egis-sidebar-bg: #1D2345;
   --egis-text: #1D2345;
+  --egis-white: #FFFFFF;
+  --egis-body-bg: var(--bs-body-bg, #f5f5f5);
+
+  /* Texto */
+  --egis-text-body: #474756;
   --egis-text-muted: #808AA8;
+
+  /* Bordes y superficies */
   --egis-border: #D4D2D5;
+  --egis-progress-bg: #E9EBEE;
+  --egis-disabled: #ABA7AF;
+  --egis-outline-hover: #f0f3ff;
+
+  /* Tablas */
   --egis-grid-header-bg: rgba(38, 112, 224, 0.1);
+
+  /* Estados / badges */
+  --egis-success: #00C56B;
+  --egis-draft: #F9DC00;
+  --egis-closed: #EB4A88;
+
+  /* Gradiente de progreso */
+  --egis-progress-gradient: linear-gradient(90deg, #173DDC 0%, #EB4A88 100%);
+
+  /* Tipografía (Poppins en botones/modales; Montserrat opcional en body) */
+  --egis-font-primary: 'Poppins', sans-serif;
+  --egis-font-secondary: 'Montserrat', sans-serif;
 }
 
 body {
-  font-family: 'Poppins', sans-serif;
-  background-color: var(--bs-body-bg);
+  font-family: var(--egis-font-primary);
+  background-color: var(--egis-body-bg);
   color: var(--egis-text);
 }
 
@@ -50,10 +84,10 @@ body {
 }
 
 .btn-primary-otic {
-  background: #173DDC !important;
+  background: var(--egis-primary) !important;
   border-radius: 6px !important;
-  color: #FFFFFF !important;
-  font-family: 'Poppins', sans-serif;
+  color: var(--egis-white) !important;
+  font-family: var(--egis-font-primary);
   font-weight: 500;
   font-size: 14px !important;
   height: 35px !important;
@@ -67,7 +101,7 @@ body {
 }
 
 .btn-primary-otic:hover {
-  background: #132cb1 !important;
+  background: var(--egis-primary-hover) !important;
 }
 
 .btn-primary-otic.btn-auto-width {
@@ -76,10 +110,10 @@ body {
 }
 
 .btn-pink-otic {
-  background: #EB4A88 !important;
+  background: var(--egis-accent) !important;
   border-radius: 6px !important;
-  color: #FFFFFF !important;
-  font-family: 'Poppins', sans-serif;
+  color: var(--egis-white) !important;
+  font-family: var(--egis-font-primary);
   font-weight: 500;
   font-size: 14px !important;
   height: 35px !important;
@@ -93,7 +127,7 @@ body {
 }
 
 .btn-pink-otic:hover {
-  background: #d13a75 !important;
+  background: var(--egis-accent-hover) !important;
 }
 
 .btn-pink-otic.btn-auto-width {
@@ -103,10 +137,10 @@ body {
 
 .btn-outline-otic {
   background: transparent !important;
-  border: 1px solid #173DDC !important;
+  border: 1px solid var(--egis-primary) !important;
   border-radius: 6px !important;
-  color: #173DDC !important;
-  font-family: 'Poppins', sans-serif;
+  color: var(--egis-primary) !important;
+  font-family: var(--egis-font-primary);
   font-weight: 500;
   font-size: 14px !important;
   height: 35px !important;
@@ -119,7 +153,7 @@ body {
 }
 
 .btn-outline-otic:hover {
-  background: #f0f3ff !important;
+  background: var(--egis-outline-hover) !important;
 }
 
 .btn-outline-otic.btn-auto-width {
@@ -128,25 +162,25 @@ body {
 }
 
 .info-label {
-  font-family: 'Poppins', sans-serif;
+  font-family: var(--egis-font-primary);
   font-weight: 400;
   font-size: 16px;
-  color: #808AA8;
+  color: var(--egis-text-muted);
   display: inline-block;
 }
 
 .info-value {
-  font-family: 'Poppins', sans-serif;
+  font-family: var(--egis-font-primary);
   font-weight: 400;
   font-size: 16px;
-  color: #1D2345;
+  color: var(--egis-text);
 }
 
 /* Grilla genérica estilo mantenedor */
 .custom-grid-container {
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid #D4D2D5;
+  border: 1px solid var(--egis-border);
 }
 
 .custom-grid {
@@ -156,28 +190,28 @@ body {
 }
 
 .custom-grid thead {
-  background-color: rgba(38, 112, 224, 0.1) !important;
+  background-color: var(--egis-grid-header-bg) !important;
 }
 
 .custom-grid th {
-  font-family: 'Poppins', sans-serif;
+  font-family: var(--egis-font-primary);
   font-weight: 600;
   font-size: 14px;
-  color: #1D2345;
+  color: var(--egis-text);
   padding: 12px 15px;
   text-align: left;
-  border-bottom: 1px solid #D4D2D5;
+  border-bottom: 1px solid var(--egis-border);
   text-transform: none !important;
 }
 
 .custom-grid td {
-  font-family: 'Poppins', sans-serif;
+  font-family: var(--egis-font-primary);
   font-weight: 400;
   font-size: 14px;
-  color: #474756;
+  color: var(--egis-text-body);
   padding: 12px 15px;
   vertical-align: middle;
-  border-bottom: 1px solid #D4D2D5;
+  border-bottom: 1px solid var(--egis-border);
 }
 
 .custom-grid tr:last-child td {
@@ -188,10 +222,10 @@ body {
   width: 217px !important;
   height: 35px !important;
   border-radius: 6px !important;
-  border: 1px solid #173DDC !important;
+  border: 1px solid var(--egis-primary) !important;
   background: transparent !important;
-  color: #173DDC !important;
-  font-family: 'Poppins', sans-serif;
+  color: var(--egis-primary) !important;
+  font-family: var(--egis-font-primary);
   font-weight: 500;
   font-size: 14px !important;
   padding: 0;
@@ -203,13 +237,13 @@ body {
 }
 
 .btn-recordar-seleccionados:hover:not(:disabled) {
-  background: #f0f3ff !important;
+  background: var(--egis-outline-hover) !important;
 }
 
 .btn-recordar-seleccionados:disabled {
   opacity: 0.5 !important;
-  border-color: #ABA7AF !important;
-  color: #ABA7AF !important;
+  border-color: var(--egis-disabled) !important;
+  color: var(--egis-disabled) !important;
   cursor: not-allowed;
 }
 
@@ -217,10 +251,10 @@ body {
   width: 321px !important;
   height: 35px !important;
   border-radius: 6px !important;
-  background: #173DDC !important;
-  color: #FFFFFF !important;
+  background: var(--egis-primary) !important;
+  color: var(--egis-white) !important;
   border: none !important;
-  font-family: 'Poppins', sans-serif;
+  font-family: var(--egis-font-primary);
   font-weight: 500;
   font-size: 14px !important;
   padding: 0;
@@ -232,32 +266,32 @@ body {
 }
 
 .btn-recordar-pendientes:hover:not(:disabled) {
-  background: #132cb1 !important;
+  background: var(--egis-primary-hover) !important;
 }
 
 .btn-recordar-pendientes:disabled {
-  background: #ABA7AF !important;
+  background: var(--egis-disabled) !important;
   cursor: not-allowed;
 }
 
 .progress-bar-gradient {
-  background: linear-gradient(90deg, #173DDC 0%, #EB4A88 100%) !important;
+  background: var(--egis-progress-gradient) !important;
   border-radius: 1000px !important;
 }
 
 .badge-enviada {
-  background-color: #00C56B !important;
-  color: #FFFFFF !important;
+  background-color: var(--egis-success) !important;
+  color: var(--egis-white) !important;
 }
 
 .badge-borrador {
-  background-color: #F9DC00 !important;
+  background-color: var(--egis-draft) !important;
   color: #000000 !important;
 }
 
 .badge-cerrada {
-  background-color: #EB4A88 !important;
-  color: #FFFFFF !important;
+  background-color: var(--egis-closed) !important;
+  color: var(--egis-white) !important;
 }
 
 .badge {
@@ -272,6 +306,83 @@ body {
   border-radius: 4px;
 }
 
-.badge-status-ok { background-color: #00C56B !important; color: #fff; }
-.badge-status-warning { background-color: #F9DC00 !important; color: #000; }
-.badge-status-danger { background-color: #EB4A88 !important; color: #fff; }
+.badge-status-ok { background-color: var(--egis-success) !important; color: var(--egis-white); }
+.badge-status-warning { background-color: var(--egis-draft) !important; color: #000; }
+.badge-status-danger { background-color: var(--egis-closed) !important; color: var(--egis-white); }
+
+/* --- Páginas de autenticación (login / register) --- */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: var(--egis-body-bg);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 12px;
+  border: 1px solid var(--egis-border);
+  background: var(--egis-white);
+}
+
+.auth-header .auth-logo {
+  width: 56px;
+  height: 56px;
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--egis-grid-header-bg);
+  color: var(--egis-primary);
+  border-radius: 12px;
+  font-size: 1.5rem;
+}
+
+.auth-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--egis-text);
+  margin-bottom: 0.15rem;
+}
+
+.auth-subtitle {
+  font-size: 0.9rem;
+  color: var(--egis-text-muted);
+  margin-bottom: 0;
+}
+
+.auth-form-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--egis-text);
+}
+
+.auth-form .form-label {
+  font-weight: 500;
+  color: var(--egis-text);
+}
+
+.auth-form .form-control {
+  border-color: var(--egis-border);
+  border-radius: 6px;
+}
+
+.auth-form .form-control:focus {
+  border-color: var(--egis-primary);
+  box-shadow: 0 0 0 3px rgba(23, 61, 220, 0.12);
+}
+
+.auth-link {
+  color: var(--egis-primary);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.auth-link:hover {
+  color: var(--egis-primary-hover);
+  text-decoration: underline;
+}
