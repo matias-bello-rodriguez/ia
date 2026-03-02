@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "django_filters",
     "graphene_django",
+    "drf_spectacular",
     # Local
     "egis_app",
 ]
@@ -92,6 +93,26 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+# drf-spectacular (OpenAPI / Swagger)
+SPECTACULAR_SETTINGS = {
+    "TITLE": "EGIS Backend API",
+    "DESCRIPTION": "API REST para gestión habitacional: dashboard, proyectos, beneficiarios, visado de documentos con IA, reportes SERVIU, notificaciones y configuración.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SCHEMA_PATH_PREFIX": r"/api/",
+    "TAGS": [
+        {"name": "Dashboard", "description": "Métricas y panel principal"},
+        {"name": "Proyectos", "description": "Proyectos habitacionales"},
+        {"name": "Beneficiarios", "description": "Beneficiarios por proyecto"},
+        {"name": "Documentos", "description": "Cola de documentos y visado con IA"},
+        {"name": "Reportes", "description": "Reporte ejecutivo SERVIU y carpetas"},
+        {"name": "Notificaciones", "description": "Contactos pendientes y envío"},
+        {"name": "Configuración", "description": "Reglas de subsidio, documento y módulos IA"},
+    ],
 }
 
 # GraphQL

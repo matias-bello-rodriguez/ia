@@ -140,3 +140,21 @@ class AlertaSerializer(serializers.ModelSerializer):
             "severidad",
         ]
 
+
+# Documentación OpenAPI: request/response para POST /api/documentos/visar/
+class VisarDocumentoRequestSerializer(serializers.Serializer):
+    """Cuerpo multipart: archivo PDF o imagen para extracción con IA."""
+
+    file = serializers.FileField(required=False, allow_null=True)
+
+
+class ResultadoExtraccionSerializer(serializers.Serializer):
+    label = serializers.CharField()
+    value = serializers.CharField()
+    status = serializers.ChoiceField(choices=["approved", "rejected", "alert"])
+    note = serializers.CharField(required=False, allow_null=True)
+
+
+class VisarDocumentoResponseSerializer(serializers.Serializer):
+    resultados = ResultadoExtraccionSerializer(many=True)
+
