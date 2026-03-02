@@ -1,8 +1,8 @@
 <div class="d-flex flex-column gap-4">
   <ul class="nav nav-tabs">
-    <li class="nav-item"><a class="nav-link" [class.active]="activeTab === 'report'" (click)="activeTab = 'report'" href="javascript:void(0)"><i class="bi bi-file-text me-1"></i> Resumen Ejecutivo</a></li>
-    <li class="nav-item"><a class="nav-link" [class.active]="activeTab === 'carpeta'" (click)="activeTab = 'carpeta'" href="javascript:void(0)"><i class="bi bi-folder2-open me-1"></i> Carpeta SERVIU</a></li>
-    <li class="nav-item"><a class="nav-link" [class.active]="activeTab === 'ficha'" (click)="activeTab = 'ficha'" href="javascript:void(0)"><i class="bi bi-clipboard-check me-1"></i> Informes de Terceros</a></li>
+    <li class="nav-item"><a class="nav-link" [class.active]="activeTab === 'report'" (click)="onTabChange('report')" href="javascript:void(0)"><i class="bi bi-file-text me-1"></i> Resumen Ejecutivo</a></li>
+    <li class="nav-item"><a class="nav-link" [class.active]="activeTab === 'carpeta'" (click)="onTabChange('carpeta')" href="javascript:void(0)"><i class="bi bi-folder2-open me-1"></i> Carpeta SERVIU</a></li>
+    <li class="nav-item"><a class="nav-link" [class.active]="activeTab === 'ficha'" (click)="onTabChange('ficha')" href="javascript:void(0)"><i class="bi bi-clipboard-check me-1"></i> Informes de Terceros</a></li>
   </ul>
 
   @if (activeTab === 'report') {
@@ -20,7 +20,12 @@
           </div>
           <div class="card-body">
             <p class="small text-body-secondary mb-3">Vista técnica por beneficiario. Sin texto narrativo.</p>
-            @if (reportGenerated) {
+            @if (loadingReporte) {
+              <div class="d-flex flex-column align-items-center justify-content-center gap-3 text-body-secondary" style="min-height: 200px;">
+                <div class="spinner-border text-primary"></div>
+                <span>Cargando reporte...</span>
+              </div>
+            } @else if (reportGenerated) {
               <div class="table-responsive">
                 <table class="table table-bordered table-sm">
                   <thead class="table-light">
@@ -42,10 +47,10 @@
                         <td class="text-center"><i class="bi" [class.bi-check-circle-fill]="row.vistoBuenoITO" [class.text-success]="row.vistoBuenoITO" [class.bi-x-circle]="!row.vistoBuenoITO" [class.text-secondary]="!row.vistoBuenoITO"></i></td>
                         <td class="text-center"><i class="bi" [class.bi-check-circle-fill]="row.checkSeremi" [class.text-success]="row.checkSeremi" [class.bi-x-circle]="!row.checkSeremi" [class.text-secondary]="!row.checkSeremi"></i></td>
                         <td class="text-center">
-                          @if (listoParaFacturar[row.id]) {
+                          @if (row.listoParaFacturar) {
                             <span class="badge bg-success"><i class="bi bi-cash-stack me-1"></i> Listo para Facturar</span>
                           } @else if (puedeAptoParaCobro(row)) {
-                            <button class="btn btn-sm btn-primary" (click)="marcarListoParaFacturar(row.id)"><i class="bi bi-cash-stack me-1"></i> Apto para Cobro</button>
+                            <button class="btn btn-sm btn-primary" (click)="marcarListoParaFacturar(row)"><i class="bi bi-cash-stack me-1"></i> Apto para Cobro</button>
                           } @else {
                             <span class="small text-body-secondary">Falta informe / ITO / resolución</span>
                           }
@@ -95,6 +100,12 @@
         <button class="btn btn-primary"><i class="bi bi-download me-2"></i> Descargar .ZIP</button>
       </div>
       <div class="card-body">
+        @if (loadingCarpeta) {
+          <div class="d-flex flex-column align-items-center justify-content-center gap-3 text-body-secondary py-5">
+            <div class="spinner-border text-primary"></div>
+            <span>Cargando archivos de carpeta...</span>
+          </div>
+        } @else {
         <div class="d-flex flex-column gap-2">
           @for (f of carpetaFiles; track f.name) {
             <div class="d-flex align-items-center justify-content-between border rounded p-3">
@@ -113,6 +124,7 @@
             </div>
           }
         </div>
+        }
       </div>
     </div>
   }

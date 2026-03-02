@@ -1,40 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DocumentosService } from '../../core/services/documentos.service';
+import type { DocQueueItem, ExtractedField } from '../../shared/models';
 
 type VigenciaDoc = 'vigente' | 'por_vencer' | 'vencido';
 type Status = 'approved' | 'rejected' | 'alert';
-
-interface ExtractedField {
-  label: string;
-  value: string;
-  status: Status;
-  note?: string;
-}
-
-interface DocQueueItem {
-  name: string;
-  type: string;
-  status: Status;
-  vigencia: VigenciaDoc;
-}
-
-const MOCK_RESULTS: ExtractedField[] = [
-  { label: 'RUT', value: '12.345.678-9', status: 'approved' },
-  { label: 'Nombre Completo', value: 'Maria Gonzalez Soto', status: 'approved' },
-  { label: 'Fecha Emisión', value: '15/01/2026', status: 'approved' },
-  { label: 'Vigencia', value: '15/04/2026', status: 'approved' },
-  { label: 'Dominio Vigente', value: 'Emitido hace 95 días', status: 'rejected', note: 'Documento > 90 días, solicitar actualización en el CBR' },
-  { label: 'Monto Ahorro', value: '12 UF', status: 'alert', note: 'Ahorro insuficiente - mínimo requerido: 15 UF' },
-];
-
-const DOC_QUEUE: DocQueueItem[] = [
-  { name: '12345678-9_DOMINIO_2026.pdf', type: 'Dominio Vigente', status: 'rejected', vigencia: 'vencido' },
-  { name: '12345678-9_RSH_2026.pdf', type: 'Certificado RSH', status: 'approved', vigencia: 'vigente' },
-  { name: '12345678-9_AHORRO_2026.pdf', type: 'Cartola Ahorro', status: 'alert', vigencia: 'por_vencer' },
-  { name: '12345678-9_CI_2026.pdf', type: 'Carnet Identidad', status: 'approved', vigencia: 'vigente' },
-  { name: '11222333-4_DOMINIO_2026.pdf', type: 'Dominio Vigente', status: 'approved', vigencia: 'vigente' },
-];
 
 @Component({
   selector: 'app-visado',
@@ -42,34 +13,66 @@ const DOC_QUEUE: DocQueueItem[] = [
   imports: [CommonModule, FormsModule],
   templateUrl: './visado.component.html',
 })
-export class VisadoComponent {
-  extractionResults = MOCK_RESULTS;
-  documentQueue = DOC_QUEUE;
+export class VisadoComponent implements OnInit {
+  extractionResults: ExtractedField[] = [];
+  documentQueue: DocQueueItem[] = [];
   vigenciaFilter: 'todos' | VigenciaDoc = 'todos';
   isScanning = false;
-  showResults = true;
+  showResults = false;
+  loadingQueue = true;
+
+  constructor(private documentosService: DocumentosService) {}
+
+  ngOnInit(): void {
+    this.loadQueue();
+  }
+
+  loadQueue(): void {
+    const vigencia = this.vigenciaFilter === 'todos' ? undefined : this.vigenciaFilter;
+    this.loadingQueue = true;
+    this.documentosService.getCola(vigencia).subscribe({
+      next: (list) => {
+        this.documentQueue = list;
+        this.loadingQueue = false;
+      },
+      error: () => {
+        this.loadingQueue = false;
+      },
+    });
+  }
+
+  onFilterChange(): void {
+    this.loadQueue();
+  }
 
   get filteredQueue(): DocQueueItem[] {
-    if (this.vigenciaFilter === 'todos') return this.documentQueue;
-    return this.documentQueue.filter((d) => d.vigencia === this.vigenciaFilter);
+    return this.documentQueue;
   }
 
   scan(): void {
     this.isScanning = true;
     this.showResults = false;
-    setTimeout(() => {
-      this.isScanning = false;
-      this.showResults = true;
-    }, 2000);
+    this.documentosService.visar().subscribe({
+      next: (res) => {
+        this.extractionResults = res.resultados;
+        this.isScanning = false;
+        this.showResults = true;
+        this.loadQueue();
+      },
+      error: () => {
+        this.isScanning = false;
+        this.showResults = true;
+      },
+    });
   }
 
-  statusClass(s: Status): string {
+  statusClass(s: ExtractedField['status']): string {
     if (s === 'approved') return 'bg-success';
     if (s === 'rejected') return 'bg-danger';
     return 'bg-warning';
   }
 
-  statusLabel(s: Status): string {
+  statusLabel(s: ExtractedField['status']): string {
     if (s === 'approved') return 'Aprobado';
     if (s === 'rejected') return 'Rechazado';
     return 'Alerta';

@@ -13,6 +13,12 @@
   </ul>
 
   @if (activeTab === 'projects') {
+    @if (loadingProjects) {
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="small text-body-secondary mt-2 mb-0">Cargando proyectos...</p>
+      </div>
+    } @else {
     <div class="row g-4">
       <div class="col-12 col-lg-6">
         <div class="card h-100">
@@ -71,9 +77,16 @@
         </div>
       </div>
     </div>
+    }
   }
 
   @if (activeTab === 'beneficiaries') {
+    @if (loadingBeneficiaries) {
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="small text-body-secondary mt-2 mb-0">Cargando beneficiarios...</p>
+      </div>
+    } @else {
     <div class="card">
       <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-start gap-3">
         <div>
@@ -130,5 +143,6 @@
         </table>
       </div>
     </div>
+    }
   }
 </div>

@@ -1,4 +1,10 @@
 <div class="d-flex flex-column gap-4">
+  @if (loading) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p class="small text-body-secondary mt-2 mb-0">Cargando contactos...</p>
+    </div>
+  } @else {
   <div class="row g-4">
     <div class="col-12 col-lg-4">
       <div class="card">
@@ -7,7 +13,7 @@
           <small class="text-body-secondary">Beneficiarios con documentos faltantes</small>
         </div>
         <div class="card-body p-2">
-          @for (c of contacts; track c.rut; let i = $index) {
+          @for (c of contacts; track c.id ?? c.rut; let i = $index) {
             <button type="button" class="btn btn-light w-100 text-start d-flex align-items-start gap-2 p-3 mb-2 rounded border" [class.border-primary]="selectedIndex === i" [class.bg-primary]="selectedIndex === i" [class.bg-opacity-10]="selectedIndex === i" (click)="selectedIndex = i">
               <div class="position-relative">
                 <span class="rounded-circle bg-secondary bg-opacity-25 d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px;"><i class="bi bi-person text-body-secondary"></i></span>
@@ -23,7 +29,7 @@
                 </div>
                 <div class="small text-body-secondary mt-1"><i class="bi bi-clock me-1"></i>{{ c.lastContact }}</div>
               </div>
-              @if (sentMessages.has(i)) {
+              @if (c.id != null && sentMessages.has(c.id)) {
                 <i class="bi bi-check-circle-fill text-success"></i>
               }
             </button>
@@ -60,7 +66,7 @@
             <hr>
             <div class="d-flex justify-content-between align-items-center">
               <span class="small text-body-secondary">Enviar por WhatsApp / SMS</span>
-              <button class="btn btn-primary btn-sm" (click)="enviar(selectedIndex)">
+              <button class="btn btn-primary btn-sm" (click)="selected && enviar(selected)" [disabled]="selected && selected.id != null && sentMessages.has(selected.id)">
                 <i class="bi bi-send me-1"></i> Enviar
               </button>
             </div>
@@ -69,4 +75,5 @@
       }
     </div>
   </div>
+  }
 </div>

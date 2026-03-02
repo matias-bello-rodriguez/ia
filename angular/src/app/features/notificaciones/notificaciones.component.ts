@@ -1,22 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-interface Contact {
-  name: string;
-  rut: string;
-  phone: string;
-  missing: string[];
-  urgency: 'critical' | 'warning';
-  lastContact: string;
-  committee: string;
-}
-
-const CONTACTS: Contact[] = [
-  { name: 'Maria Gonzalez Soto', rut: '12.345.678-9', phone: '+56 9 1234 5678', missing: ['Carnet Identidad'], urgency: 'critical', lastContact: 'Hace 3 días', committee: 'Villa Esperanza' },
-  { name: 'Pedro Ramirez Lagos', rut: '11.222.333-4', phone: '+56 9 8765 4321', missing: ['Certificado RSH'], urgency: 'warning', lastContact: 'Hace 1 semana', committee: 'Población Aurora' },
-  { name: 'Ana Muñoz Vera', rut: '15.678.901-2', phone: '+56 9 5555 1234', missing: ['Dominio Vigente', 'Cartola Ahorro'], urgency: 'critical', lastContact: 'Nunca contactado', committee: 'Comité Los Aromos' },
-  { name: 'Luisa Torres Pino', rut: '14.567.890-K', phone: '+56 9 4444 5678', missing: ['Dominio Vigente'], urgency: 'warning', lastContact: 'Hace 2 días', committee: 'Población Aurora' },
-];
+import { NotificacionesService } from '../../core/services';
+import type { Contact } from '../../shared/models';
 
 @Component({
   selector: 'app-notificaciones',
@@ -24,13 +9,28 @@ const CONTACTS: Contact[] = [
   imports: [CommonModule],
   templateUrl: './notificaciones.component.html',
 })
-export class NotificacionesComponent {
-  contacts = CONTACTS;
+export class NotificacionesComponent implements OnInit {
+  contacts: Contact[] = [];
   selectedIndex = 0;
   sentMessages = new Set<number>();
+  loading = true;
 
-  get selected(): Contact {
-    return this.contacts[this.selectedIndex];
+  constructor(private notificacionesService: NotificacionesService) {}
+
+  ngOnInit(): void {
+    this.notificacionesService.getContactosPendientes().subscribe({
+      next: (list) => {
+        this.contacts = list;
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+      },
+    });
+  }
+
+  get selected(): Contact | null {
+    return this.contacts[this.selectedIndex] ?? null;
   }
 
   message(contact: Contact): string {
@@ -39,7 +39,13 @@ export class NotificacionesComponent {
     return `Hola ${firstName}, para no perder su subsidio de vivienda, necesitamos que nos envíe una foto de su ${docList} vigente lo antes posible. Puede responder a este mensaje con la foto o acercarse a nuestra oficina. Cualquier duda estamos para ayudarle.`;
   }
 
-  enviar(index: number): void {
-    this.sentMessages = new Set(this.sentMessages).add(index);
+  enviar(contact: Contact): void {
+    const id = contact.id;
+    if (id == null) return;
+    this.notificacionesService.marcarEnviado(id).subscribe({
+      next: () => {
+        this.sentMessages = new Set(this.sentMessages).add(id);
+      },
+    });
   }
 }

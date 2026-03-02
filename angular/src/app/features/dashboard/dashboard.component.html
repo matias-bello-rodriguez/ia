@@ -1,4 +1,10 @@
 <div class="d-flex flex-column gap-4">
+  @if (loading) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p class="small text-body-secondary mt-2 mb-0">Cargando dashboard...</p>
+    </div>
+  } @else {
   <div class="row g-3">
     @for (m of metrics; track m.title) {
       <div class="col-12 col-sm-6 col-lg-3">
@@ -92,4 +98,5 @@
       </div>
     </div>
   </div>
+  }
 </div>
