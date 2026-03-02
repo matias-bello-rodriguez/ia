@@ -67,8 +67,8 @@
                     <span class="text-body-secondary">Avance General:</span>
                     <span class="fw-medium">{{ project.progress }}%</span>
                   </div>
-                  <div class="progress" style="height: 6px;">
-                    <div class="progress-bar" [style.width.%]="project.progress"></div>
+                  <div class="progress" style="height: 6px; border-radius: 1000px; background-color: #E9EBEE;">
+                    <div class="progress-bar progress-bar-gradient" [style.width.%]="project.progress"></div>
                   </div>
                 </div>
               </div>
@@ -99,7 +99,8 @@
         </div>
       </div>
       <div class="card-body p-0 overflow-auto">
-        <table class="table table-hover mb-0">
+        <div class="custom-grid-container">
+          <table class="table custom-grid align-middle mb-0">
           <thead>
             <tr>
               <th>Beneficiario</th>
@@ -125,15 +126,15 @@
                 </td>
                 <td>
                   <div class="d-flex align-items-center justify-content-center gap-2">
-                    <div class="progress flex-grow-1" style="width: 60px; height: 8px;">
-                      <div class="progress-bar" [class.bg-success]="b.matchScore >= 80" [class.bg-warning]="b.matchScore >= 60 && b.matchScore < 80" [class.bg-danger]="b.matchScore < 60" [style.width.%]="b.matchScore"></div>
+                    <div class="progress flex-grow-1" style="width: 60px; height: 8px; border-radius: 1000px; background-color: #E9EBEE;">
+                      <div class="progress-bar progress-bar-gradient" [style.width.%]="b.matchScore"></div>
                     </div>
                     <span class="small fw-medium">{{ b.matchScore }}%</span>
                   </div>
                 </td>
                 <td><span class="badge bg-secondary font-monospace">{{ b.suggestedSubsidy }}</span></td>
                 <td>
-                  <span class="badge" [class.bg-success]="b.status === 'approved'" [class.bg-danger]="b.status === 'alert'" [class.bg-secondary]="b.status === 'pending'">
+                  <span class="badge" [class.badge-enviada]="b.status === 'approved'" [class.badge-cerrada]="b.status === 'alert'" [class.badge-borrador]="b.status === 'pending'">
                     {{ b.status === 'approved' ? 'Aprobado' : b.status === 'alert' ? 'Alerta' : 'Pendiente' }}
                   </span>
                 </td>
@@ -141,6 +142,7 @@
             }
           </tbody>
         </table>
+        </div>
       </div>
     </div>
     }

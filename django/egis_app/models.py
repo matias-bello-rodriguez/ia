@@ -86,7 +86,7 @@ class Carpeta(models.Model):
   beneficiario = models.OneToOneField(Beneficiario, on_delete=models.CASCADE, related_name="carpeta")
   estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default="pendiente")
   estado_subsidio = models.CharField(max_length=80, blank=True)
-  monto_uf = models.CharField(max_length=20, blank=True)
+  monto_uf = models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)
   visto_bueno_ito = models.BooleanField(default=False)
   check_seremi = models.BooleanField(default=False)
   resolucion = models.BooleanField(default=False)

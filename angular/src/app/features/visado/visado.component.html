@@ -33,7 +33,7 @@
             <i class="bi bi-robot text-primary"></i>
             <h6 class="mb-0">Resultados de Extracción IA</h6>
           </div>
-          <button class="btn btn-sm btn-outline-primary" (click)="scan()" [disabled]="isScanning">
+          <button type="button" class="btn btn-outline-otic btn-auto-width" (click)="scan()" [disabled]="isScanning">
             <i class="bi bi-upc-scan me-1"></i>{{ isScanning ? 'Procesando...' : 'Visar con IA' }}
           </button>
         </div>
@@ -47,7 +47,7 @@
                       <span class="small text-body-secondary">{{ f.label }}</span>
                       <div class="fw-medium">{{ f.value }}</div>
                     </div>
-                    <span class="badge" [ngClass]="statusClass(f.status)">{{ statusLabel(f.status) }}</span>
+                    <span class="badge" [class.badge-enviada]="f.status === 'approved'" [class.badge-cerrada]="f.status === 'rejected'" [class.badge-borrador]="f.status === 'alert'">{{ statusLabel(f.status) }}</span>
                   </div>
                   @if (f.note) {
                     <div class="mt-2 small rounded p-2" [class.bg-danger]="f.status === 'rejected'" [class.bg-opacity-10]="f.status === 'rejected'" [class.text-danger]="f.status === 'rejected'" [class.bg-warning]="f.status === 'alert'" [class.bg-opacity-10]="f.status === 'alert'" [class.text-warning]="f.status === 'alert'">
@@ -131,7 +131,7 @@
                 <div class="small text-body-secondary">{{ doc.type }}</div>
               </div>
             </div>
-            <span class="badge" [ngClass]="statusClass(doc.status)">{{ statusLabel(doc.status) }}</span>
+            <span class="badge" [class.badge-enviada]="doc.status === 'approved'" [class.badge-cerrada]="doc.status === 'rejected'" [class.badge-borrador]="doc.status === 'alert'">{{ statusLabel(doc.status) }}</span>
           </div>
         }
       </div>

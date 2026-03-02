@@ -12,10 +12,10 @@
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h6 class="mb-0">Reporte SERVIU — Formulario sucinto</h6>
             <div class="d-flex gap-2">
-              <button class="btn btn-sm btn-outline-secondary" (click)="actualizarReporte()" [disabled]="isGenerating">
-                <i class="bi bi-arrow-clockwise me-1" ></i>{{ isGenerating ? 'Actualizando...' : 'Actualizar' }}
+              <button type="button" class="btn btn-outline-otic btn-auto-width" (click)="actualizarReporte()" [disabled]="isGenerating">
+                <i class="bi bi-arrow-clockwise me-1"></i>{{ isGenerating ? 'Actualizando...' : 'Actualizar' }}
               </button>
-              <button class="btn btn-sm btn-primary"><i class="bi bi-download me-1"></i> Exportar</button>
+              <button type="button" class="btn btn-primary-otic btn-auto-width"><i class="bi bi-download me-1"></i> Exportar</button>
             </div>
           </div>
           <div class="card-body">
@@ -27,7 +27,8 @@
               </div>
             } @else if (reportGenerated) {
               <div class="table-responsive">
-                <table class="table table-bordered table-sm">
+                <div class="custom-grid-container">
+                <table class="table custom-grid table-bordered table-sm">
                   <thead class="table-light">
                     <tr>
                       <th>Beneficiario</th>
@@ -48,9 +49,9 @@
                         <td class="text-center"><i class="bi" [class.bi-check-circle-fill]="row.checkSeremi" [class.text-success]="row.checkSeremi" [class.bi-x-circle]="!row.checkSeremi" [class.text-secondary]="!row.checkSeremi"></i></td>
                         <td class="text-center">
                           @if (row.listoParaFacturar) {
-                            <span class="badge bg-success"><i class="bi bi-cash-stack me-1"></i> Listo para Facturar</span>
+                            <span class="badge badge-enviada"><i class="bi bi-cash-stack me-1"></i> Listo para Facturar</span>
                           } @else if (puedeAptoParaCobro(row)) {
-                            <button class="btn btn-sm btn-primary" (click)="marcarListoParaFacturar(row)"><i class="bi bi-cash-stack me-1"></i> Apto para Cobro</button>
+                            <button type="button" class="btn btn-primary-otic btn-auto-width" (click)="marcarListoParaFacturar(row)"><i class="bi bi-cash-stack me-1"></i> Apto para Cobro</button>
                           } @else {
                             <span class="small text-body-secondary">Falta informe / ITO / resolución</span>
                           }
@@ -59,6 +60,7 @@
                     }
                   </tbody>
                 </table>
+              </div>
               </div>
             } @else {
               <div class="d-flex flex-column align-items-center justify-content-center gap-3 text-body-secondary" style="min-height: 200px;">
@@ -83,7 +85,7 @@
           <div class="card-header"><h6 class="mb-0">Completitud Carpeta</h6></div>
           <div class="card-body text-center">
             <div class="mb-2 fw-bold display-6">100%</div>
-            <span class="badge bg-success">Lista para SERVIU</span>
+            <span class="badge badge-enviada">Lista para SERVIU</span>
           </div>
         </div>
       </div>
@@ -97,7 +99,7 @@
           <h6 class="mb-0">Generador de Carpeta SERVIU</h6>
           <small class="text-body-secondary">Archivos ordenados y renombrados según estándar oficial</small>
         </div>
-        <button class="btn btn-primary"><i class="bi bi-download me-2"></i> Descargar .ZIP</button>
+        <button type="button" class="btn btn-primary-otic btn-auto-width"><i class="bi bi-download me-2"></i> Descargar .ZIP</button>
       </div>
       <div class="card-body">
         @if (loadingCarpeta) {
