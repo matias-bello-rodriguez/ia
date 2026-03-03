@@ -111,6 +111,10 @@ export class VisadoComponent implements OnInit {
     });
   }
 
+  get filteredQueue(): DocQueueItem[] {
+    return this.documentQueue;
+  }
+
   onFilterChange(): void {
     this.loadQueue();
   }

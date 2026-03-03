@@ -57,7 +57,7 @@ export class AuthService {
 
   /** Login local cuando el backend no tiene auth. */
   loginLocal(email: string, _password: string): Observable<{ token: string; user: User }> {
-    const user: User = { id: 1, email, nombre: email.split('@')[0] };
+    const user: User = { id: '1', email, nombre: email.split('@')[0] };
     const token = 'local-' + Math.random().toString(36).slice(2);
     sessionStorage.setItem(TOKEN_KEY, token);
     sessionStorage.setItem(USER_KEY, JSON.stringify(user));
@@ -78,7 +78,7 @@ export class AuthService {
   /** Registro local cuando el backend no tiene auth. */
   registerLocal(payload: RegisterRequest): Observable<{ token: string; user: User }> {
     const user: User = {
-      id: Date.now(),
+      id: String(Date.now()),
       email: payload.email,
       nombre: payload.nombre ?? payload.email.split('@')[0],
     };

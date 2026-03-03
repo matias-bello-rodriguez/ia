@@ -12,7 +12,7 @@ import type { Contact } from '../../shared/models';
 export class NotificacionesComponent implements OnInit {
   contacts: Contact[] = [];
   selectedIndex = 0;
-  sentMessages = new Set<number>();
+  sentMessages = new Set<string>();
   loading = true;
 
   constructor(private notificacionesService: NotificacionesService) {}
