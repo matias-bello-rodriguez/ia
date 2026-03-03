@@ -8,7 +8,7 @@ const TOKEN_KEY = 'egis_token';
 const USER_KEY = 'egis_user';
 
 export interface User {
-  id: number;
+  id: string;
   email: string;
   nombre?: string;
 }

@@ -13,7 +13,7 @@ import type { CarpetaFile, ReporteRow } from '../../shared/models';
 export class ReportesComponent implements OnInit {
   reporteGrid: ReporteRow[] = [];
   carpetaFiles: CarpetaFile[] = [];
-  selectedCarpetaId: number | null = null;
+  selectedCarpetaId: string | null = null;
   activeTab = 'report';
   reportGenerated = true;
   isGenerating = false;
@@ -35,7 +35,7 @@ export class ReportesComponent implements OnInit {
         this.reporteGrid = rows;
         this.loadingReporte = false;
         if (rows.length > 0 && !this.selectedCarpetaId) {
-          this.selectedCarpetaId = Number(rows[0].id);
+          this.selectedCarpetaId = rows[0].id;
         }
       },
       error: () => {
@@ -44,7 +44,7 @@ export class ReportesComponent implements OnInit {
     });
   }
 
-  selectCarpetaForFiles(id: number): void {
+  selectCarpetaForFiles(id: string): void {
     this.selectedCarpetaId = id;
     this.loadCarpetaFiles();
   }
@@ -72,7 +72,7 @@ export class ReportesComponent implements OnInit {
   }
 
   marcarListoParaFacturar(row: ReporteRow): void {
-    const id = Number(row.id);
+    const id = row.id;
     if (!id) return;
     this.reportesService.marcarListoParaFacturar(id).subscribe({
       next: () => {

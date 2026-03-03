@@ -26,13 +26,13 @@ export class ConfiguracionService {
       .pipe(map(mapSubsidyRules));
   }
 
-  getReglaSubsidio(id: number): Observable<SubsidyRule> {
+  getReglaSubsidio(id: string): Observable<SubsidyRule> {
     return this.http
       .get<ApiReglaSubsidio>(`${this.base}/reglas-subsidio/${id}/`)
       .pipe(map(mapSubsidyRule));
   }
 
-  updateReglaSubsidio(id: number, rule: Partial<SubsidyRule>): Observable<SubsidyRule> {
+  updateReglaSubsidio(id: string, rule: Partial<SubsidyRule>): Observable<SubsidyRule> {
     return this.http
       .patch<ApiReglaSubsidio>(`${this.base}/reglas-subsidio/${id}/`, mapSubsidyRuleToApi(rule))
       .pipe(map(mapSubsidyRule));

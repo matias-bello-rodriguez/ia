@@ -11,7 +11,7 @@ import {
 } from '../../shared/mappers';
 
 export interface BeneficiariosQuery {
-  proyectoId?: number;
+  proyectoId?: string;
   q?: string;
 }
 
@@ -30,17 +30,17 @@ export class BeneficiariosService {
       .pipe(map(mapBeneficiarios));
   }
 
-  getById(id: number): Observable<Beneficiary> {
+  getById(id: string): Observable<Beneficiary> {
     return this.http.get<ApiBeneficiario>(`${this.url}${id}/`).pipe(map(mapBeneficiario));
   }
 
-  create(beneficiary: Partial<Beneficiary>, proyectoId: number): Observable<Beneficiary> {
+  create(beneficiary: Partial<Beneficiary>, proyectoId: string): Observable<Beneficiary> {
     return this.http
       .post<ApiBeneficiario>(this.url, mapBeneficiarioToApi(beneficiary, proyectoId))
       .pipe(map(mapBeneficiario));
   }
 
-  update(id: number, beneficiary: Partial<Beneficiary>, proyectoId: number): Observable<Beneficiary> {
+  update(id: string, beneficiary: Partial<Beneficiary>, proyectoId: string): Observable<Beneficiary> {
     return this.http
       .patch<ApiBeneficiario>(`${this.url}${id}/`, mapBeneficiarioToApi(beneficiary, proyectoId))
       .pipe(map(mapBeneficiario));

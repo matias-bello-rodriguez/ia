@@ -1,0 +1,138 @@
+<div class="d-flex flex-column gap-4">
+
+  <!-- Nav -->
+  <div class="d-flex align-items-center gap-3">
+    <a routerLink="/visado" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Volver al Visado
+    </a>
+    @if (documento) {
+      <div>
+        <h5 class="mb-0">{{ documento.nombreArchivo }}</h5>
+        <small class="text-body-secondary">{{ documento.tipoDocumento }}</small>
+      </div>
+      <div class="ms-auto d-flex gap-2">
+        <span class="badge" [class]="semaforoBadge(documento.semaforo)">{{ semaforoLabel(documento.semaforo) }}</span>
+        <span class="badge" [class]="estadoBadge(documento.estado)">{{ documento.estado }}</span>
+      </div>
+    }
+  </div>
+
+  @if (loading) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary"></div>
+      <p class="small text-body-secondary mt-2">Cargando documento...</p>
+    </div>
+  } @else if (errorMsg) {
+    <div class="alert alert-danger">{{ errorMsg }}</div>
+  } @else if (documento) {
+
+    <!-- ═══ Layout Side-by-Side ═══ -->
+    <div class="row g-4" style="min-height: 600px;">
+
+      <!-- Columna izquierda: PDF -->
+      <div class="col-12 col-lg-6">
+        <div class="card h-100">
+          <div class="card-header">
+            <h6 class="mb-0"><i class="bi bi-file-earmark-pdf me-2 text-danger"></i>Documento Original</h6>
+          </div>
+          <div class="card-body p-0">
+            @if (pdfUrl) {
+              <iframe [src]="pdfUrl" class="w-100 border-0" style="height: 580px;"></iframe>
+            } @else {
+              <div class="d-flex flex-column align-items-center justify-content-center gap-3 text-body-secondary" style="height: 580px;">
+                <i class="bi bi-file-earmark-x display-4"></i>
+                <p class="small">Vista previa no disponible</p>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna derecha: Análisis IA -->
+      <div class="col-12 col-lg-6">
+        <div class="d-flex flex-column gap-3">
+
+          <!-- Metadatos -->
+          <div class="card">
+            <div class="card-header">
+              <h6 class="mb-0"><i class="bi bi-info-circle me-2 text-primary"></i>Información</h6>
+            </div>
+            <div class="card-body">
+              <div class="row g-2 small">
+                <div class="col-6">
+                  <span class="text-body-secondary d-block">Emisión</span>
+                  <span class="fw-medium">{{ documento.fechaEmision ?? '—' }}</span>
+                </div>
+                <div class="col-6">
+                  <span class="text-body-secondary d-block">Vencimiento</span>
+                  <span class="fw-medium">{{ documento.fechaVencimiento ?? '—' }}</span>
+                </div>
+                <div class="col-6">
+                  <span class="text-body-secondary d-block">Días restantes</span>
+                  <span class="fw-medium" [class.text-danger]="(documento.diasRestantes ?? 99) <= 5" [class.text-warning]="(documento.diasRestantes ?? 99) > 5 && (documento.diasRestantes ?? 99) <= 15">
+                    {{ documento.diasRestantes ?? '—' }}
+                  </span>
+                </div>
+                <div class="col-6">
+                  <span class="text-body-secondary d-block">Confianza IA</span>
+                  <span class="fw-bold" [class]="scoreColor(documento.scoreConfianza)">
+                    {{ documento.scoreConfianza ? ((documento.scoreConfianza * 100) | number:'1.0-0') + '%' : '—' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resumen ejecutivo -->
+          @if (documento.resumenEjecutivo) {
+            <div class="card">
+              <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-stars me-2 text-primary"></i>Resumen Ejecutivo IA</h6>
+              </div>
+              <div class="card-body">
+                <p class="mb-0 small">{{ documento.resumenEjecutivo }}</p>
+              </div>
+            </div>
+          }
+
+          <!-- Campos extraídos -->
+          @if (documento.extraccionJson?.length) {
+            <div class="card">
+              <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-list-check me-2"></i>Campos Extraídos</h6>
+              </div>
+              <div class="card-body">
+                <div class="d-flex flex-column gap-2" style="max-height: 300px; overflow-y: auto;">
+                  @for (f of documento.extraccionJson; track f.label) {
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
+                      <div>
+                        <span class="text-body-secondary" style="font-size: 0.75rem;">{{ f.label }}</span>
+                        <div class="fw-medium small">{{ f.value }}</div>
+                      </div>
+                      <span class="badge" [class.text-bg-success]="f.status === 'approved'" [class.text-bg-danger]="f.status === 'rejected'" [class.text-bg-warning]="f.status === 'alert'">
+                        {{ statusLabel(f.status) }}
+                      </span>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Si no hay datos IA -->
+          @if (!documento.iaProcesado) {
+            <div class="card">
+              <div class="card-body text-center text-body-secondary py-4">
+                <i class="bi bi-robot display-6 opacity-50"></i>
+                <p class="small mt-2 mb-0">Este documento aún no ha sido procesado por la IA.</p>
+                <a routerLink="/visado" class="btn btn-sm btn-outline-primary mt-3">
+                  <i class="bi bi-upc-scan me-1"></i>Ir al Visado
+                </a>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

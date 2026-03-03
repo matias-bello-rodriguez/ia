@@ -21,7 +21,7 @@ export class NotificacionesService {
       .pipe(map(mapContacts));
   }
 
-  marcarEnviado(contactoId: number): Observable<{ ok: boolean }> {
+  marcarEnviado(contactoId: string): Observable<{ ok: boolean }> {
     return this.http.post<{ ok: boolean }>(
       `${this.base}/contactos-pendientes/${contactoId}/enviar/`,
       {}

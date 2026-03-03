@@ -22,20 +22,20 @@ export class ReportesService {
       .pipe(map(mapReporteGrid));
   }
 
-  getCarpetaArchivos(carpetaId: number): Observable<CarpetaFile[]> {
+  getCarpetaArchivos(carpetaId: string): Observable<CarpetaFile[]> {
     return this.http
       .get<ApiCarpetaArchivo[]>(`${this.base}/carpetas/${carpetaId}/archivos/`)
       .pipe(map(mapCarpetaFiles));
   }
 
-  marcarListoParaFacturar(carpetaId: number): Observable<{ ok: boolean }> {
+  marcarListoParaFacturar(carpetaId: string): Observable<{ ok: boolean }> {
     return this.http.patch<{ ok: boolean }>(
       `${this.base}/carpetas/${carpetaId}/listo-facturar/`,
       {}
     );
   }
 
-  getInformesTerceros(carpetaId: number): Observable<Array<{ tipo_informe: string; nombre_archivo: string; seremi_aprobado: boolean }>> {
+  getInformesTerceros(carpetaId: string): Observable<Array<{ tipo_informe: string; nombre_archivo: string; seremi_aprobado: boolean }>> {
     return this.http.get<Array<{ tipo_informe: string; nombre_archivo: string; seremi_aprobado: boolean }>>(
       `${this.base}/carpetas/${carpetaId}/informes-terceros/`
     );

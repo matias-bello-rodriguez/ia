@@ -14,7 +14,7 @@ export class ConfiguracionComponent implements OnInit {
   subsidyRules: SubsidyRule[] = [];
   documentRules: DocumentRule[] = [];
   aiModules: AiModule[] = [];
-  editingRow: number | null = null;
+  editingRow: string | null = null;
   loading = true;
 
   constructor(private configuracionService: ConfiguracionService) {}
@@ -43,7 +43,7 @@ export class ConfiguracionComponent implements OnInit {
     });
   }
 
-  startEdit(id: number): void {
+  startEdit(id: string): void {
     this.editingRow = id;
   }
 

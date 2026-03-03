@@ -15,7 +15,7 @@ export class ProyectosService {
     return this.http.get<ApiProyecto[]>(this.url).pipe(map(mapProyectos));
   }
 
-  getById(id: number): Observable<Project> {
+  getById(id: string): Observable<Project> {
     return this.http.get<ApiProyecto>(`${this.url}${id}/`).pipe(map(mapProyecto));
   }
 
@@ -25,7 +25,7 @@ export class ProyectosService {
       .pipe(map(mapProyecto));
   }
 
-  update(id: number, project: Partial<Project>): Observable<Project> {
+  update(id: string, project: Partial<Project>): Observable<Project> {
     return this.http
       .patch<ApiProyecto>(`${this.url}${id}/`, mapProjectToApi(project))
       .pipe(map(mapProyecto));

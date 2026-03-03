@@ -26,6 +26,25 @@ export const routes: Routes = [
           import('./features/visado/visado.component').then((m) => m.VisadoComponent),
       },
       {
+        path: 'semaforo',
+        loadComponent: () =>
+          import('./features/semaforo/semaforo.component').then((m) => m.SemaforoComponent),
+      },
+      {
+        path: 'documento/:id',
+        loadComponent: () =>
+          import('./features/document-viewer/document-viewer.component').then(
+            (m) => m.DocumentViewerComponent
+          ),
+      },
+      {
+        path: 'firma-digital',
+        loadComponent: () =>
+          import('./features/firma-digital/firma-digital.component').then(
+            (m) => m.FirmaDigitalComponent
+          ),
+      },
+      {
         path: 'reportes',
         loadComponent: () =>
           import('./features/reportes/reportes.component').then((m) => m.ReportesComponent),
