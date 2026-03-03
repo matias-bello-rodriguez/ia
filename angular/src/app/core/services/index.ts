@@ -1,5 +1,6 @@
 export { API_BASE_URL } from './api-config';
-export { AuthService, type User, type LoginRequest } from './auth.service';
+export { AuthService, type User, type UserRole, type LoginRequest } from './auth.service';
+export { AlertService } from './alert.service';
 export { DashboardService, type DashboardData } from './dashboard.service';
 export { ProyectosService } from './proyectos.service';
 export { BeneficiariosService, type BeneficiariosQuery } from './beneficiarios.service';

@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
+import { AuthService } from '../services';
 
 const MODULE_TITLES: Record<string, { title: string; description: string }> = {
   dashboard: { title: 'Dashboard Global', description: 'Visión general del estado de la EGIS' },
@@ -25,7 +26,10 @@ export class LayoutComponent implements OnInit {
   currentTitle = MODULE_TITLES['dashboard'].title;
   currentDescription = MODULE_TITLES['dashboard'].description;
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private auth: AuthService
+  ) {}
 
   ngOnInit(): void {
     this.updateTitleFromUrl(this.router.url);
@@ -35,7 +39,9 @@ export class LayoutComponent implements OnInit {
   }
 
   private updateTitleFromUrl(url: string): void {
-    const key = url.replace(/^\//, '').split('/')[0] || 'dashboard';
+    // URL: /dashboard-egis/comites → segments after 'dashboard-egis'
+    const segments = url.replace(/^\//, '').split('/');
+    const key = segments.length > 1 ? segments[1] : 'dashboard';
     const info = MODULE_TITLES[key] ?? MODULE_TITLES['dashboard'];
     this.currentTitle = info.title;
     this.currentDescription = info.description;
@@ -43,5 +49,13 @@ export class LayoutComponent implements OnInit {
 
   onActivate(): void {
     this.updateTitleFromUrl(this.router.url);
+  }
+
+  volverInicio(): void {
+    this.router.navigate(['/inicio']);
+  }
+
+  logout(): void {
+    this.auth.logout();
   }
 }

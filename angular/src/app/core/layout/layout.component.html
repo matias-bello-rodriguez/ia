@@ -1,6 +1,6 @@
 <div class="d-flex">
   <!-- Sidebar -->
-  <nav class="sidebar-egis flex-shrink-0 p-3" style="width: 16rem;">
+  <nav class="sidebar-egis shrink-0 p-3" style="width: 16rem;">
     <div class="d-flex align-items-center gap-2 mb-4 px-2">
       <div class="rounded bg-primary bg-opacity-25 p-2">
         <i class="bi bi-building text-primary"></i>
@@ -16,60 +16,70 @@
     <ul class="nav flex-column small">
       <li class="nav-item mb-1 text-uppercase text-white-50 fw-semibold" style="font-size: 10px; letter-spacing: 0.05em;">Control</li>
       <li class="nav-item">
-        <a routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link" (click)="onActivate()">
+        <a routerLink="/dashboard-egis" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link" (click)="onActivate()">
           <i class="bi bi-grid-1x2"></i> Dashboard Global
         </a>
       </li>
 
       <li class="nav-item mt-3 mb-1 text-uppercase text-white-50 fw-semibold" style="font-size: 10px; letter-spacing: 0.05em;">Operativo</li>
       <li class="nav-item">
-        <a routerLink="/comites" routerLinkActive="active" class="nav-link" (click)="onActivate()">
+        <a routerLink="/dashboard-egis/comites" routerLinkActive="active" class="nav-link" (click)="onActivate()">
           <i class="bi bi-geo-alt"></i> Comités y Fichas
         </a>
       </li>
 
       <li class="nav-item mt-3 mb-1 text-uppercase text-white-50 fw-semibold" style="font-size: 10px; letter-spacing: 0.05em;">Visado IA</li>
       <li class="nav-item">
-        <a routerLink="/visado" routerLinkActive="active" class="nav-link" (click)="onActivate()">
+        <a routerLink="/dashboard-egis/visado" routerLinkActive="active" class="nav-link" (click)="onActivate()">
           <i class="bi bi-upc-scan"></i> Visado Inteligente
         </a>
       </li>
 
       <li class="nav-item mt-3 mb-1 text-uppercase text-white-50 fw-semibold" style="font-size: 10px; letter-spacing: 0.05em;">Constructora</li>
       <li class="nav-item">
-        <a routerLink="/semaforo" routerLinkActive="active" class="nav-link" (click)="onActivate()">
+        <a routerLink="/dashboard-egis/semaforo" routerLinkActive="active" class="nav-link" (click)="onActivate()">
           <i class="bi bi-stoplights"></i> Semáforo
         </a>
       </li>
       <li class="nav-item">
-        <a routerLink="/firma-digital" routerLinkActive="active" class="nav-link" (click)="onActivate()">
+        <a routerLink="/dashboard-egis/firma-digital" routerLinkActive="active" class="nav-link" (click)="onActivate()">
           <i class="bi bi-pen"></i> Firma HITO
         </a>
       </li>
 
       <li class="nav-item mt-3 mb-1 text-uppercase text-white-50 fw-semibold" style="font-size: 10px; letter-spacing: 0.05em;">Cierre</li>
       <li class="nav-item">
-        <a routerLink="/reportes" routerLinkActive="active" class="nav-link" (click)="onActivate()">
+        <a routerLink="/dashboard-egis/reportes" routerLinkActive="active" class="nav-link" (click)="onActivate()">
           <i class="bi bi-file-text"></i> Reportes y SERVIU
         </a>
       </li>
 
       <li class="nav-item mt-3 mb-1 text-uppercase text-white-50 fw-semibold" style="font-size: 10px; letter-spacing: 0.05em;">Comunicación</li>
       <li class="nav-item">
-        <a routerLink="/notificaciones" routerLinkActive="active" class="nav-link" (click)="onActivate()">
+        <a routerLink="/dashboard-egis/notificaciones" routerLinkActive="active" class="nav-link" (click)="onActivate()">
           <i class="bi bi-chat-dots"></i> Notificaciones
         </a>
       </li>
 
       <li class="nav-item mt-3 mb-1 text-uppercase text-white-50 fw-semibold" style="font-size: 10px; letter-spacing: 0.05em;">Sistema</li>
       <li class="nav-item">
-        <a routerLink="/configuracion" routerLinkActive="active" class="nav-link" (click)="onActivate()">
+        <a routerLink="/dashboard-egis/configuracion" routerLinkActive="active" class="nav-link" (click)="onActivate()">
           <i class="bi bi-gear"></i> Configuración
         </a>
       </li>
     </ul>
 
     <hr class="border-secondary opacity-50 mt-auto">
+
+    <div class="d-flex flex-column gap-2 px-2 mb-3">
+      <button class="btn btn-sm btn-outline-light w-100 d-flex align-items-center gap-2" (click)="volverInicio()">
+        <i class="bi bi-arrow-left"></i> Volver al Inicio
+      </button>
+      <button class="btn btn-sm btn-outline-danger w-100 d-flex align-items-center gap-2" (click)="logout()">
+        <i class="bi bi-box-arrow-left"></i> Cerrar Sesión
+      </button>
+    </div>
+
     <div class="d-flex align-items-center gap-2 px-2 py-2">
       <div class="rounded-circle bg-primary bg-opacity-25 p-2">
         <i class="bi bi-robot text-primary"></i>
@@ -84,10 +94,10 @@
   </nav>
 
   <!-- Main -->
-  <div class="flex-grow-1 d-flex flex-column min-vh-100">
+  <div class="grow d-flex flex-column min-vh-100">
     <header class="border-bottom bg-white px-4 py-3 d-flex align-items-center gap-3">
       <div class="vr d-none d-md-block"></div>
-      <div class="flex-grow-1">
+      <div class="grow">
         <h1 class="h6 fw-semibold mb-0 text-body">{{ currentTitle }}</h1>
         <p class="small text-body-secondary mb-0">{{ currentDescription }}</p>
       </div>
@@ -95,7 +105,7 @@
         <i class="bi bi-robot"></i> IA Activa <i class="bi bi-stars"></i>
       </span>
     </header>
-    <main class="flex-grow-1 overflow-auto p-4">
+    <main class="grow overflow-auto p-4">
       <router-outlet (activate)="onActivate()"></router-outlet>
     </main>
   </div>

@@ -1,16 +1,19 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, of, tap, catchError } from 'rxjs';
-import { API_BASE_URL } from './api-config';
+import { BehaviorSubject, Observable, from, of } from 'rxjs';
+import { map, tap, catchError, switchMap } from 'rxjs/operators';
+import { Session, User as SupaUser } from '@supabase/supabase-js';
+import { getSupabaseClient } from './supabase-client';
 
-const TOKEN_KEY = 'egis_token';
-const USER_KEY = 'egis_user';
+// ── Tipos de perfil ─────────────────────────────────────────
+export type UserRole = 'egis' | 'constructora';
 
 export interface User {
   id: string;
   email: string;
   nombre?: string;
+  /** Rol seleccionado por el usuario en la pantalla de inicio */
+  role: UserRole;
 }
 
 export interface LoginRequest {
@@ -18,79 +21,139 @@ export interface LoginRequest {
   password: string;
 }
 
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  nombre?: string;
-}
+// ── Claves de storage ───────────────────────────────────────
+const ROLE_KEY = 'egis_selected_role';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  constructor(
-    private http: HttpClient,
-    private router: Router
-  ) {}
+  private supabase = getSupabaseClient();
 
-  getToken(): string | null {
-    return sessionStorage.getItem(TOKEN_KEY);
+  /** Stream reactivo del usuario autenticado (null = no logueado) */
+  private userSubject = new BehaviorSubject<User | null>(null);
+  user$ = this.userSubject.asObservable();
+
+  /** Indica que la verificación inicial de sesión terminó */
+  private readySubject = new BehaviorSubject<boolean>(false);
+  ready$ = this.readySubject.asObservable();
+
+  constructor(private router: Router) {
+    this.initSession();
   }
 
+  // ── Inicialización: restaurar sesión tras refresh ──────────
+  private async initSession(): Promise<void> {
+    try {
+      const { data } = await this.supabase.auth.getSession();
+      if (data.session) {
+        this.setUserFromSession(data.session);
+      }
+    } catch {
+      // sin sesión: no-op
+    } finally {
+      this.readySubject.next(true);
+    }
+
+    // Escuchar cambios de sesión (refresh token, logout en otra tab)
+    this.supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        this.setUserFromSession(session);
+      } else {
+        this.userSubject.next(null);
+        localStorage.removeItem(ROLE_KEY);
+      }
+    });
+  }
+
+  private setUserFromSession(session: Session): void {
+    const su = session.user;
+    const savedRole = localStorage.getItem(ROLE_KEY) as UserRole | null;
+    const user: User = {
+      id: su.id,
+      email: su.email ?? '',
+      nombre: su.user_metadata?.['nombre'] ?? su.email?.split('@')[0] ?? '',
+      role: savedRole ?? 'egis',
+    };
+    this.userSubject.next(user);
+  }
+
+  // ── Getters sincrónicos ───────────────────────────────────
   getUser(): User | null {
-    const raw = sessionStorage.getItem(USER_KEY);
-    return raw ? (JSON.parse(raw) as User) : null;
+    return this.userSubject.value;
+  }
+
+  getToken(): string | null {
+    // se obtiene asíncronamente; para el interceptor usar getSessionToken()
+    return null;
+  }
+
+  async getSessionToken(): Promise<string | null> {
+    const { data } = await this.supabase.auth.getSession();
+    return data.session?.access_token ?? null;
   }
 
   isLoggedIn(): boolean {
-    return !!this.getToken();
+    return !!this.userSubject.value;
   }
 
-  login(email: string, password: string): Observable<{ token: string; user: User }> {
-    const url = `${API_BASE_URL}/auth/login/`;
-    return this.http.post<{ token: string; user: User }>(url, { email, password }).pipe(
-      tap((res) => {
-        sessionStorage.setItem(TOKEN_KEY, res.token);
-        sessionStorage.setItem(USER_KEY, JSON.stringify(res.user));
-      }),
-      catchError(() => this.loginLocal(email, password))
+  getRole(): UserRole | null {
+    return this.userSubject.value?.role ?? (localStorage.getItem(ROLE_KEY) as UserRole | null);
+  }
+
+  // ── Seleccionar rol (paso 1 del flujo) ─────────────────────
+  selectRole(role: UserRole): void {
+    localStorage.setItem(ROLE_KEY, role);
+    // si ya hay sesión activa, actualizar el usuario
+    const current = this.userSubject.value;
+    if (current) {
+      this.userSubject.next({ ...current, role });
+    }
+  }
+
+  // ── Login con Supabase (paso 2) ───────────────────────────
+  login(email: string, password: string): Observable<User> {
+    return from(
+      this.supabase.auth.signInWithPassword({ email, password })
+    ).pipe(
+      map((res) => {
+        if (res.error) throw res.error;
+        const session = res.data.session;
+        if (!session) throw new Error('No se obtuvo sesión.');
+        this.setUserFromSession(session);
+        return this.userSubject.value!;
+      })
     );
   }
 
-  /** Login local cuando el backend no tiene auth. */
-  loginLocal(email: string, _password: string): Observable<{ token: string; user: User }> {
-    const user: User = { id: '1', email, nombre: email.split('@')[0] };
-    const token = 'local-' + Math.random().toString(36).slice(2);
-    sessionStorage.setItem(TOKEN_KEY, token);
-    sessionStorage.setItem(USER_KEY, JSON.stringify(user));
-    return of({ token, user });
-  }
-
-  register(payload: RegisterRequest): Observable<{ token: string; user: User }> {
-    const url = `${API_BASE_URL}/auth/register/`;
-    return this.http.post<{ token: string; user: User }>(url, payload).pipe(
-      tap((res) => {
-        sessionStorage.setItem(TOKEN_KEY, res.token);
-        sessionStorage.setItem(USER_KEY, JSON.stringify(res.user));
-      }),
-      catchError(() => this.registerLocal(payload))
+  // ── Registro ──────────────────────────────────────────────
+  register(email: string, password: string, nombre?: string): Observable<User> {
+    return from(
+      this.supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { nombre: nombre ?? email.split('@')[0] } },
+      })
+    ).pipe(
+      map((res) => {
+        if (res.error) throw res.error;
+        const session = res.data.session;
+        if (!session) throw new Error('Revise su correo para confirmar la cuenta.');
+        this.setUserFromSession(session);
+        return this.userSubject.value!;
+      })
     );
   }
 
-  /** Registro local cuando el backend no tiene auth. */
-  registerLocal(payload: RegisterRequest): Observable<{ token: string; user: User }> {
-    const user: User = {
-      id: String(Date.now()),
-      email: payload.email,
-      nombre: payload.nombre ?? payload.email.split('@')[0],
-    };
-    const token = 'local-' + Math.random().toString(36).slice(2);
-    sessionStorage.setItem(TOKEN_KEY, token);
-    sessionStorage.setItem(USER_KEY, JSON.stringify(user));
-    return of({ token, user });
+  // ── Logout ────────────────────────────────────────────────
+  async logout(): Promise<void> {
+    await this.supabase.auth.signOut();
+    this.userSubject.next(null);
+    localStorage.removeItem(ROLE_KEY);
+    this.router.navigate(['/']);
   }
 
-  logout(): void {
-    sessionStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(USER_KEY);
-    this.router.navigate(['/login']);
+  // ── Dashboard path según rol ──────────────────────────────
+  getDashboardPath(): string {
+    const role = this.getRole();
+    return role === 'constructora' ? '/dashboard-constructora' : '/dashboard-egis';
   }
 }

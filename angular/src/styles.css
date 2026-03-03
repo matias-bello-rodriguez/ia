@@ -1,4 +1,5 @@
 @import 'bootstrap/dist/css/bootstrap.min.css';
+@import 'sweetalert2/dist/sweetalert2.min.css';
 
 /* ==========================================================================
    Paleta principal OTIC / Confianza — única fuente de verdad
@@ -385,4 +386,110 @@ body {
 .auth-link:hover {
   color: var(--egis-primary-hover);
   text-decoration: underline;
+}
+
+/* ==========================================================================
+   Inicio / Splash — Selección de Perfil
+   ========================================================================== */
+.inicio-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--egis-sidebar-bg) 0%, #2a3158 100%);
+  padding: 2rem 1rem;
+}
+
+.inicio-container {
+  width: 100%;
+  max-width: 900px;
+}
+
+.inicio-logo {
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  background: rgba(23, 61, 220, 0.15);
+  font-size: 2rem;
+  color: var(--egis-primary);
+}
+
+.inicio-title {
+  font-family: var(--egis-font-primary);
+  font-weight: 700;
+  font-size: 2.25rem;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.inicio-subtitle {
+  font-family: var(--egis-font-primary);
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 1rem;
+  margin-bottom: 0;
+}
+
+.inicio-divider {
+  width: 64px;
+  border-top: 3px solid var(--egis-primary);
+  opacity: 1;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.inicio-description {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.95rem;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.inicio-card {
+  border: 2px solid transparent;
+  border-radius: 12px;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+  cursor: pointer;
+}
+
+.inicio-card:hover,
+.inicio-card:focus-visible {
+  border-color: var(--egis-primary);
+  box-shadow: 0 8px 32px rgba(23, 61, 220, 0.18);
+  transform: translateY(-4px);
+}
+
+.inicio-card-icon {
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 1.75rem;
+}
+
+.inicio-card-icon--egis {
+  background: rgba(23, 61, 220, 0.1);
+  color: var(--egis-primary);
+}
+
+.inicio-card-icon--constructora {
+  background: rgba(235, 74, 136, 0.1);
+  color: var(--egis-accent);
+}
+
+.inicio-feature-list li {
+  padding: 0.35rem 0;
+  font-size: 0.9rem;
+  color: var(--egis-text-body);
+}
+
+/* Badge helper: fondo rosa para constructora */
+.bg-pink-otic {
+  background-color: var(--egis-accent) !important;
+  color: #fff !important;
 }

@@ -1,0 +1,74 @@
+<div class="inicio-page">
+  <div class="inicio-container">
+    <!-- Header / Branding -->
+    <div class="text-center mb-5">
+      <div class="inicio-logo mx-auto mb-3">
+        <i class="bi bi-building"></i>
+      </div>
+      <h1 class="inicio-title">EGIS Pro</h1>
+      <p class="inicio-subtitle">Plataforma de Gestión Habitacional</p>
+      <hr class="inicio-divider mx-auto">
+      <p class="inicio-description">
+        Seleccione su perfil de acceso para continuar con la autenticación.
+      </p>
+    </div>
+
+    <!-- Cards de selección de perfil -->
+    <div class="row g-4 justify-content-center mb-5">
+      <!-- Acceso EGIS -->
+      <div class="col-12 col-md-6 col-lg-5">
+        <div class="card inicio-card h-100 shadow-sm" (click)="selectProfile('egis')" (keydown.enter)="selectProfile('egis')" tabindex="0" role="button">
+          <div class="card-body d-flex flex-column align-items-center text-center p-4 p-lg-5">
+            <div class="inicio-card-icon inicio-card-icon--egis mb-4">
+              <i class="bi bi-briefcase-fill"></i>
+            </div>
+            <h3 class="fw-bold mb-2">Acceso EGIS</h3>
+            <p class="text-body-secondary mb-4">
+              Panel de gestión documental, visado inteligente con IA, comités, reportes y mesa de trabajo del equipo EGIS.
+            </p>
+            <ul class="list-unstyled text-start w-100 mb-4 inicio-feature-list">
+              <li><i class="bi bi-check2-circle text-success me-2"></i>Dashboard Global</li>
+              <li><i class="bi bi-check2-circle text-success me-2"></i>Visado Inteligente OCR</li>
+              <li><i class="bi bi-check2-circle text-success me-2"></i>Comités y Fichas Técnicas</li>
+              <li><i class="bi bi-check2-circle text-success me-2"></i>Reportes y Carpeta SERVIU</li>
+              <li><i class="bi bi-check2-circle text-success me-2"></i>Centro de Notificaciones</li>
+            </ul>
+            <button class="btn btn-primary-otic btn-auto-width w-100 mt-auto">
+              <i class="bi bi-arrow-right-circle me-2"></i>Ingresar como EGIS
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acceso Constructora -->
+      <div class="col-12 col-md-6 col-lg-5">
+        <div class="card inicio-card h-100 shadow-sm" (click)="selectProfile('constructora')" (keydown.enter)="selectProfile('constructora')" tabindex="0" role="button">
+          <div class="card-body d-flex flex-column align-items-center text-center p-4 p-lg-5">
+            <div class="inicio-card-icon inicio-card-icon--constructora mb-4">
+              <i class="bi bi-tools"></i>
+            </div>
+            <h3 class="fw-bold mb-2">Acceso Constructora</h3>
+            <p class="text-body-secondary mb-4">
+              Panel de obra, semáforo de estados, firma digital HITO, seguimiento de carpetas y control de avance de proyectos.
+            </p>
+            <ul class="list-unstyled text-start w-100 mb-4 inicio-feature-list">
+              <li><i class="bi bi-check2-circle text-success me-2"></i>Dashboard Constructora</li>
+              <li><i class="bi bi-check2-circle text-success me-2"></i>Semáforo de Proyectos</li>
+              <li><i class="bi bi-check2-circle text-success me-2"></i>Firma Digital HITO</li>
+              <li><i class="bi bi-check2-circle text-success me-2"></i>Control de Avance</li>
+              <li><i class="bi bi-check2-circle text-success me-2"></i>Reportes de Obra</li>
+            </ul>
+            <button class="btn btn-pink-otic btn-auto-width w-100 mt-auto">
+              <i class="bi bi-arrow-right-circle me-2"></i>Ingresar como Constructora
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center">
+      <p class="small text-white-50 mb-0">&copy; 2026 EGIS Pro — Gestión Habitacional con Inteligencia Artificial</p>
+    </div>
+  </div>
+</div>

@@ -1,5 +1,7 @@
 /**
  * URL base del backend Django (API REST).
- * En producción reemplazar por variable de entorno o build-time.
+ * Usa la configuración de entorno para mayor flexibilidad.
  */
-export const API_BASE_URL = 'http://localhost:8000/api';
+import { environment } from '../../../environments/environment';
+
+export const API_BASE_URL = environment.apiBaseUrl;

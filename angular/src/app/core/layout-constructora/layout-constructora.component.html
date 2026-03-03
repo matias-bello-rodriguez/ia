@@ -1,0 +1,91 @@
+<div class="d-flex">
+  <!-- Sidebar Constructora -->
+  <nav class="sidebar-egis shrink-0 p-3" style="width: 16rem;">
+    <div class="d-flex align-items-center gap-2 mb-4 px-2">
+      <div class="rounded bg-primary bg-opacity-25 p-2">
+        <i class="bi bi-tools text-primary"></i>
+      </div>
+      <div>
+        <span class="fw-semibold text-white">EGIS Pro</span>
+        <br>
+        <small class="text-white-50">Constructora</small>
+      </div>
+    </div>
+    <hr class="border-secondary opacity-50">
+
+    <ul class="nav flex-column small">
+      <li class="nav-item mb-1 text-uppercase text-white-50 fw-semibold" style="font-size: 10px; letter-spacing: 0.05em;">Control</li>
+      <li class="nav-item">
+        <a routerLink="/dashboard-constructora" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link" (click)="onActivate()">
+          <i class="bi bi-grid-1x2"></i> Dashboard
+        </a>
+      </li>
+
+      <li class="nav-item mt-3 mb-1 text-uppercase text-white-50 fw-semibold" style="font-size: 10px; letter-spacing: 0.05em;">Obra</li>
+      <li class="nav-item">
+        <a routerLink="/dashboard-constructora/semaforo" routerLinkActive="active" class="nav-link" (click)="onActivate()">
+          <i class="bi bi-stoplights"></i> Semáforo
+        </a>
+      </li>
+      <li class="nav-item">
+        <a routerLink="/dashboard-constructora/firma-digital" routerLinkActive="active" class="nav-link" (click)="onActivate()">
+          <i class="bi bi-pen"></i> Firma HITO
+        </a>
+      </li>
+
+      <li class="nav-item mt-3 mb-1 text-uppercase text-white-50 fw-semibold" style="font-size: 10px; letter-spacing: 0.05em;">Cierre</li>
+      <li class="nav-item">
+        <a routerLink="/dashboard-constructora/reportes" routerLinkActive="active" class="nav-link" (click)="onActivate()">
+          <i class="bi bi-file-text"></i> Reportes
+        </a>
+      </li>
+
+      <li class="nav-item mt-3 mb-1 text-uppercase text-white-50 fw-semibold" style="font-size: 10px; letter-spacing: 0.05em;">Sistema</li>
+      <li class="nav-item">
+        <a routerLink="/dashboard-constructora/configuracion" routerLinkActive="active" class="nav-link" (click)="onActivate()">
+          <i class="bi bi-gear"></i> Configuración
+        </a>
+      </li>
+    </ul>
+
+    <hr class="border-secondary opacity-50 mt-auto">
+
+    <div class="d-flex flex-column gap-2 px-2">
+      <button class="btn btn-sm btn-outline-light w-100 d-flex align-items-center gap-2" (click)="volverInicio()">
+        <i class="bi bi-arrow-left"></i> Volver al Inicio
+      </button>
+      <button class="btn btn-sm btn-outline-danger w-100 d-flex align-items-center gap-2" (click)="logout()">
+        <i class="bi bi-box-arrow-left"></i> Cerrar Sesión
+      </button>
+    </div>
+
+    <div class="d-flex align-items-center gap-2 px-2 py-2 mt-3">
+      <div class="rounded-circle bg-primary bg-opacity-25 p-2">
+        <i class="bi bi-robot text-primary"></i>
+      </div>
+      <div>
+        <span class="small fw-medium text-white">Asistente IA</span>
+        <br>
+        <span class="small text-white-50">Activo</span>
+      </div>
+      <span class="ms-auto rounded-circle bg-success" style="width: 8px; height: 8px;"></span>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="grow d-flex flex-column min-vh-100">
+    <header class="border-bottom bg-white px-4 py-3 d-flex align-items-center gap-3">
+      <div class="vr d-none d-md-block"></div>
+      <div class="grow">
+        <h1 class="h6 fw-semibold mb-0 text-body">{{ currentTitle }}</h1>
+        <p class="small text-body-secondary mb-0">{{ currentDescription }}</p>
+      </div>
+      <span class="badge border text-primary d-none d-sm-inline-flex align-items-center gap-1">
+        <i class="bi bi-tools"></i> Constructora
+      </span>
+    </header>
+    <main class="grow overflow-auto p-4">
+      <router-outlet (activate)="onActivate()"></router-outlet>
+    </main>
+  </div>
+</div>
