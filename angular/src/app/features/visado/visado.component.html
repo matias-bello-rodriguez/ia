@@ -1,139 +1,44 @@
 <div class="d-flex flex-column gap-4">
-
-  <!-- ═══ Formulario de Carga ═══ -->
   <div class="row g-4">
     <div class="col-12 col-lg-6">
       <div class="card mb-3">
         <div class="card-header">
-          <h6 class="mb-0"><i class="bi bi-upload me-2 text-primary"></i>Carga de Documento</h6>
-          <small class="text-body-secondary">Arrastra un PDF o imagen para escanear con OCR + IA</small>
+          <h6 class="mb-0">Carga de Documentos</h6>
+          <small class="text-body-secondary">Arrastra PDFs o imágenes para escanear con OCR</small>
         </div>
         <div class="card-body">
-          <!-- Selector de tipo de documento -->
-          <div class="mb-3">
-            <label class="form-label small fw-medium">Tipo de Documento <span class="text-danger">*</span></label>
-            <select class="form-select" [(ngModel)]="tipoDocumento">
-              <option value="" disabled>Seleccionar tipo...</option>
-              @for (t of tiposDocumento; track t.value) {
-                <option [value]="t.value">{{ t.label }}</option>
-              }
-            </select>
+          <div class="border border-2 border-primary border-opacity-25 rounded bg-primary bg-opacity-10 d-flex flex-column align-items-center justify-content-center gap-3 p-4 cursor-pointer" style="min-height: 200px;" (click)="scan()" (keydown.enter)="scan()" tabindex="0" role="button">
+            <i class="bi bi-upload display-6 text-primary"></i>
+            <p class="mb-0 fw-medium">{{ isScanning ? 'Escaneando documento...' : 'Drag & Drop o haz clic para subir' }}</p>
+            <small class="text-body-secondary">PDF, JPG, PNG - Max 10MB</small>
           </div>
-
-          <!-- Carpeta ID (opcional) -->
-          <div class="mb-3">
-            <label class="form-label small fw-medium">ID Carpeta <small class="text-body-secondary">(opcional)</small></label>
-            <input type="text" class="form-control" placeholder="UUID de carpeta" [(ngModel)]="carpetaId">
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h6 class="mb-0">Previsualización</h6></div>
+        <div class="card-body">
+          <div class="bg-light rounded d-flex flex-column align-items-center justify-content-center gap-2" style="min-height: 200px;">
+            <i class="bi bi-eye text-body-secondary"></i>
+            <span class="small text-body-secondary">Vista previa del documento</span>
+            <span class="small font-monospace">12345678-9_DOMINIO_2026.pdf</span>
           </div>
-
-          <!-- Zona de drop -->
-          <input type="file" #fileInput class="d-none" accept=".pdf,.jpg,.jpeg,.png" (change)="onFileSelected($event)">
-          <div
-            class="border border-2 border-primary border-opacity-25 rounded bg-primary bg-opacity-10 d-flex flex-column align-items-center justify-content-center gap-3 p-4 cursor-pointer"
-            style="min-height: 160px;"
-            (click)="triggerFileInput()"
-            (drop)="onDrop($event)"
-            (dragover)="onDragOver($event)"
-            tabindex="0"
-            role="button">
-            @if (selectedFile) {
-              <i class="bi bi-file-earmark-check display-6 text-success"></i>
-              <p class="mb-0 fw-medium text-success">{{ selectedFileName }}</p>
-              <button type="button" class="btn btn-sm btn-outline-danger" (click)="clearFile(); $event.stopPropagation()">
-                <i class="bi bi-x-lg me-1"></i>Quitar
-              </button>
-            } @else {
-              <i class="bi bi-cloud-arrow-up display-6 text-primary"></i>
-              <p class="mb-0 fw-medium">Drag &amp; Drop o haz clic para subir</p>
-              <small class="text-body-secondary">PDF, JPG, PNG — Máx 10 MB</small>
-            }
-          </div>
-
-          <!-- Botón escanear -->
-          <div class="mt-3 d-grid">
-            <button type="button" class="btn btn-primary" [disabled]="!canScan" (click)="scan()">
-              @if (isScanning) {
-                <span class="spinner-border spinner-border-sm me-2"></span>Procesando con IA...
-              } @else {
-                <i class="bi bi-robot me-2"></i>Visar con IA
-              }
-            </button>
-          </div>
-
-          @if (errorMsg) {
-            <div class="alert alert-danger mt-3 mb-0 small">
-              <i class="bi bi-exclamation-triangle me-1"></i>{{ errorMsg }}
-            </div>
-          }
         </div>
       </div>
     </div>
 
-    <!-- ═══ Resultados de Extracción IA ═══ -->
     <div class="col-12 col-lg-6">
-      @if (showResults) {
-
-        <!-- Score de confianza + Resumen ejecutivo -->
-        <div class="card mb-3">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center gap-2">
-              <i class="bi bi-stars text-primary"></i>
-              <h6 class="mb-0">Resultado IA</h6>
-            </div>
-            <span class="badge rounded-pill fs-6" [class]="scoreConfianza >= 0.8 ? 'text-bg-success' : scoreConfianza >= 0.5 ? 'text-bg-warning' : 'text-bg-danger'">
-              {{ (scoreConfianza * 100) | number:'1.0-0' }}% confianza
-            </span>
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-robot text-primary"></i>
+            <h6 class="mb-0">Resultados de Extracción IA</h6>
           </div>
-          <div class="card-body">
-            @if (resumenEjecutivo) {
-              <div class="bg-light rounded p-3 mb-3">
-                <h6 class="small fw-semibold text-body-secondary mb-1"><i class="bi bi-journal-text me-1"></i>Resumen Ejecutivo</h6>
-                <p class="mb-0 small">{{ resumenEjecutivo }}</p>
-              </div>
-            }
-            <!-- Alertas de monto -->
-            @if (alertasMonto.length) {
-              <div class="alert alert-warning small mb-3">
-                <h6 class="alert-heading small fw-bold mb-1"><i class="bi bi-exclamation-triangle me-1"></i>Alertas de Monto</h6>
-                <ul class="mb-0 ps-3">
-                  @for (a of alertasMonto; track a) {
-                    <li>{{ a }}</li>
-                  }
-                </ul>
-              </div>
-            }
-            <div class="row g-2 text-center">
-              <div class="col-4">
-                <div class="rounded p-3 bg-success bg-opacity-10">
-                  <i class="bi bi-check-circle text-success"></i>
-                  <div class="fw-bold text-success">{{ approvedCount }}</div>
-                  <small class="text-body-secondary">Aprobados</small>
-                </div>
-              </div>
-              <div class="col-4">
-                <div class="rounded p-3 bg-danger bg-opacity-10">
-                  <i class="bi bi-x-circle text-danger"></i>
-                  <div class="fw-bold text-danger">{{ rejectedCount }}</div>
-                  <small class="text-body-secondary">Rechazados</small>
-                </div>
-              </div>
-              <div class="col-4">
-                <div class="rounded p-3 bg-warning bg-opacity-10">
-                  <i class="bi bi-exclamation-circle text-warning"></i>
-                  <div class="fw-bold text-warning">{{ alertCount }}</div>
-                  <small class="text-body-secondary">Alertas</small>
-                </div>
-              </div>
-            </div>
-          </div>
+          <button type="button" class="btn btn-outline-otic btn-auto-width" (click)="scan()" [disabled]="isScanning">
+            <i class="bi bi-upc-scan me-1"></i>{{ isScanning ? 'Procesando...' : 'Visar con IA' }}
+          </button>
         </div>
-
-        <!-- Campos extraídos -->
-        <div class="card">
-          <div class="card-header">
-            <h6 class="mb-0"><i class="bi bi-list-check me-2"></i>Campos Extraídos</h6>
-          </div>
-          <div class="card-body">
+        <div class="card-body">
+          @if (showResults) {
             <div class="d-flex flex-column gap-2">
               @for (f of extractionResults; track f.label) {
                 <div class="border rounded p-3">
@@ -142,47 +47,57 @@
                       <span class="small text-body-secondary">{{ f.label }}</span>
                       <div class="fw-medium">{{ f.value }}</div>
                     </div>
-                    <span class="badge" [class.text-bg-success]="f.status === 'approved'" [class.text-bg-danger]="f.status === 'rejected'" [class.text-bg-warning]="f.status === 'alert'">
-                      {{ statusLabel(f.status) }}
-                    </span>
+                    <span class="badge" [class.badge-enviada]="f.status === 'approved'" [class.badge-cerrada]="f.status === 'rejected'" [class.badge-borrador]="f.status === 'alert'">{{ statusLabel(f.status) }}</span>
                   </div>
                   @if (f.note) {
-                    <div class="mt-2 small rounded p-2"
-                      [class.bg-danger]="f.status === 'rejected'" [class.bg-opacity-10]="true"
-                      [class.text-danger]="f.status === 'rejected'"
-                      [class.bg-warning]="f.status === 'alert'"
-                      [class.text-warning]="f.status === 'alert'">
+                    <div class="mt-2 small rounded p-2" [class.bg-danger]="f.status === 'rejected'" [class.bg-opacity-10]="f.status === 'rejected'" [class.text-danger]="f.status === 'rejected'" [class.bg-warning]="f.status === 'alert'" [class.bg-opacity-10]="f.status === 'alert'" [class.text-warning]="f.status === 'alert'">
                       {{ f.note }}
                     </div>
                   }
                 </div>
               }
             </div>
-          </div>
+          } @else {
+            <div class="d-flex flex-column align-items-center justify-content-center gap-3 text-body-secondary" style="min-height: 200px;">
+              <div class="spinner-border text-primary"></div>
+              <span>Analizando documento con IA...</span>
+            </div>
+          }
         </div>
-
-      } @else if (!isScanning) {
-        <!-- Estado vacío -->
-        <div class="card h-100">
-          <div class="card-body d-flex flex-column align-items-center justify-content-center gap-3 text-body-secondary" style="min-height: 300px;">
-            <i class="bi bi-robot display-4 text-primary opacity-50"></i>
-            <p class="mb-0 fw-medium">Sube un documento para iniciar el visado IA</p>
-            <small>El sistema analizará campos, vigencia, montos y sellos</small>
-          </div>
-        </div>
-      } @else {
-        <!-- Cargando -->
-        <div class="card h-100">
-          <div class="card-body d-flex flex-column align-items-center justify-content-center gap-3" style="min-height: 300px;">
-            <div class="spinner-border text-primary"></div>
-            <span class="text-body-secondary">Analizando documento con IA...</span>
+      </div>
+      @if (showResults) {
+        <div class="card">
+          <div class="card-header"><h6 class="mb-0">Resumen de Validación</h6></div>
+          <div class="card-body">
+            <div class="row g-2 text-center">
+              <div class="col-4">
+                <div class="rounded p-3 bg-success bg-opacity-10">
+                  <i class="bi bi-check-circle text-success"></i>
+                  <div class="fw-bold text-success">3</div>
+                  <small class="text-body-secondary">Aprobados</small>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="rounded p-3 bg-danger bg-opacity-10">
+                  <i class="bi bi-x-circle text-danger"></i>
+                  <div class="fw-bold text-danger">1</div>
+                  <small class="text-body-secondary">Rechazados</small>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="rounded p-3 bg-warning bg-opacity-10">
+                  <i class="bi bi-exclamation-circle text-warning"></i>
+                  <div class="fw-bold text-warning">1</div>
+                  <small class="text-body-secondary">Alertas</small>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       }
     </div>
   </div>
 
-  <!-- ═══ Cola de Documentos Visados ═══ -->
   <div class="card">
     <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-start gap-2">
       <div>
@@ -190,7 +105,7 @@
         <small class="text-body-secondary">Historial de documentos procesados por la IA</small>
       </div>
       <div class="d-flex align-items-center gap-2">
-        <i class="bi bi-funnel text-body-secondary"></i>
+        <i class="bi bi-calendar-check text-body-secondary"></i>
         <select class="form-select form-select-sm" style="width: 180px;" [(ngModel)]="vigenciaFilter" (ngModelChange)="onFilterChange()">
           <option value="todos">Todos</option>
           <option value="vigente">Vigentes</option>
@@ -205,38 +120,21 @@
           <div class="spinner-border text-primary"></div>
           <span>Cargando cola...</span>
         </div>
-      } @else if (documentQueue.length === 0) {
-        <div class="text-center text-body-secondary py-4">
-          <i class="bi bi-inbox display-6"></i>
-          <p class="small mt-2 mb-0">No hay documentos en la cola</p>
-        </div>
       } @else {
-        <div class="d-flex flex-column gap-2">
-          @for (doc of documentQueue; track doc.id ?? doc.name) {
-            <div class="d-flex align-items-center justify-content-between border rounded p-3">
-              <div class="d-flex align-items-center gap-3">
-                <i class="bi" [class]="semaforoIcon(doc.semaforo)" [ngClass]="semaforoClass(doc.semaforo)" style="font-size: 1.2rem;"></i>
-                <div>
-                  <div class="fw-medium font-monospace small">{{ doc.name }}</div>
-                  <div class="small text-body-secondary">{{ doc.type }}</div>
-                </div>
-              </div>
-              <div class="d-flex align-items-center gap-3">
-                @if (doc.diasRestantes != null) {
-                  <span class="small" [class.text-danger]="doc.diasRestantes <= 5" [class.text-warning]="doc.diasRestantes > 5 && doc.diasRestantes <= 15" [class.text-success]="doc.diasRestantes > 15">
-                    <i class="bi bi-clock me-1"></i>{{ doc.diasRestantes }}d
-                  </span>
-                }
-                @if (doc.iaProcesado) {
-                  <span class="badge text-bg-info"><i class="bi bi-robot me-1"></i>IA</span>
-                }
-                <span class="badge" [class.text-bg-success]="doc.status === 'approved'" [class.text-bg-danger]="doc.status === 'rejected'" [class.text-bg-warning]="doc.status === 'alert'">
-                  {{ statusLabel(doc.status) }}
-                </span>
+      <div class="d-flex flex-column gap-2">
+        @for (doc of filteredQueue; track doc.id ?? doc.name) {
+          <div class="d-flex align-items-center justify-content-between border rounded p-3">
+            <div class="d-flex align-items-center gap-3">
+              <i class="bi bi-file-pdf text-body-secondary"></i>
+              <div>
+                <div class="fw-medium font-monospace small">{{ doc.name }}</div>
+                <div class="small text-body-secondary">{{ doc.type }}</div>
               </div>
             </div>
-          }
-        </div>
+            <span class="badge" [class.badge-enviada]="doc.status === 'approved'" [class.badge-cerrada]="doc.status === 'rejected'" [class.badge-borrador]="doc.status === 'alert'">{{ statusLabel(doc.status) }}</span>
+          </div>
+        }
+      </div>
       }
     </div>
   </div>
