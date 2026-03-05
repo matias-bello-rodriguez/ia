@@ -1,32 +1,30 @@
 import {
   AlertService
-} from "./chunk-BBVS5UDP.js";
+} from "./chunk-WBRLHA3Z.js";
 import {
   AuthService
-} from "./chunk-O5GVKVE5.js";
+} from "./chunk-SKSN6737.js";
 import {
   Router,
   RouterOutlet,
   bootstrapApplication,
   provideRouter
-} from "./chunk-C6KJUMK6.js";
+} from "./chunk-U2AX3SLR.js";
 import {
   Component,
-  environment,
   filter,
-  from,
   inject,
   map,
   provideHttpClient,
   provideZoneChangeDetection,
   setClassMetadata,
-  switchMap,
   take,
   withInterceptors,
   ɵsetClassDebugInfo,
   ɵɵdefineComponent,
   ɵɵelement
-} from "./chunk-FLNL7WI7.js";
+} from "./chunk-6UFPIQNI.js";
+import "./chunk-NUWPPFEP.js";
 
 // src/app/core/guards/auth.guard.ts
 function whenReady(fn) {
@@ -81,54 +79,54 @@ var routes = [
   {
     path: "inicio",
     canActivate: [publicOnlyGuard],
-    loadComponent: () => import("./chunk-F6MABA62.js").then((m) => m.InicioComponent)
+    loadComponent: () => import("./chunk-WIAWSBRQ.js").then((m) => m.InicioComponent)
   },
   {
     path: "login",
     canActivate: [publicOnlyGuard],
-    loadComponent: () => import("./chunk-W77FTNAE.js").then((m) => m.LoginComponent)
+    loadComponent: () => import("./chunk-ZVN2CNMI.js").then((m) => m.LoginComponent)
   },
   // ── Dashboard EGIS (protegido: autenticado + rol egis) ────
   {
     path: "dashboard-egis",
     canActivate: [authGuard, egisGuard],
-    loadComponent: () => import("./chunk-N4ZIW6NY.js").then((m) => m.LayoutComponent),
+    loadComponent: () => import("./chunk-FYIIYLAL.js").then((m) => m.LayoutComponent),
     children: [
       {
         path: "",
-        loadComponent: () => import("./chunk-S5A5QVJR.js").then((m) => m.DashboardComponent)
+        loadComponent: () => import("./chunk-XOVBNTZV.js").then((m) => m.DashboardComponent)
       },
       {
         path: "comites",
-        loadComponent: () => import("./chunk-DRY6VTJW.js").then((m) => m.ComitesComponent)
+        loadComponent: () => import("./chunk-46YNBLZZ.js").then((m) => m.ComitesComponent)
       },
       {
         path: "visado",
-        loadComponent: () => import("./chunk-DAZEVHXO.js").then((m) => m.VisadoComponent)
+        loadComponent: () => import("./chunk-BRAVFRU7.js").then((m) => m.VisadoComponent)
       },
       {
         path: "semaforo",
-        loadComponent: () => import("./chunk-OXG4AVQY.js").then((m) => m.SemaforoComponent)
+        loadComponent: () => import("./chunk-DDERCDR6.js").then((m) => m.SemaforoComponent)
       },
       {
         path: "documento/:id",
-        loadComponent: () => import("./chunk-5PAXZBMP.js").then((m) => m.DocumentViewerComponent)
+        loadComponent: () => import("./chunk-7NKCOKEK.js").then((m) => m.DocumentViewerComponent)
       },
       {
         path: "firma-digital",
-        loadComponent: () => import("./chunk-3Y6BUKIS.js").then((m) => m.FirmaDigitalComponent)
+        loadComponent: () => import("./chunk-RJ7STKJQ.js").then((m) => m.FirmaDigitalComponent)
       },
       {
         path: "reportes",
-        loadComponent: () => import("./chunk-5OLFFEKV.js").then((m) => m.ReportesComponent)
+        loadComponent: () => import("./chunk-ZWDQ3G5I.js").then((m) => m.ReportesComponent)
       },
       {
         path: "notificaciones",
-        loadComponent: () => import("./chunk-6ML4LKTD.js").then((m) => m.NotificacionesComponent)
+        loadComponent: () => import("./chunk-EONSGCGB.js").then((m) => m.NotificacionesComponent)
       },
       {
         path: "configuracion",
-        loadComponent: () => import("./chunk-SX27MPZ4.js").then((m) => m.ConfiguracionComponent)
+        loadComponent: () => import("./chunk-S633CAJP.js").then((m) => m.ConfiguracionComponent)
       }
     ]
   },
@@ -136,27 +134,27 @@ var routes = [
   {
     path: "dashboard-constructora",
     canActivate: [authGuard, constructoraGuard],
-    loadComponent: () => import("./chunk-DQTJJGSM.js").then((m) => m.LayoutConstructoraComponent),
+    loadComponent: () => import("./chunk-ZHPNQT5G.js").then((m) => m.LayoutConstructoraComponent),
     children: [
       {
         path: "",
-        loadComponent: () => import("./chunk-IFKAEXKQ.js").then((m) => m.DashboardConstructoraComponent)
+        loadComponent: () => import("./chunk-G3GDZ4OY.js").then((m) => m.DashboardConstructoraComponent)
       },
       {
         path: "semaforo",
-        loadComponent: () => import("./chunk-OXG4AVQY.js").then((m) => m.SemaforoComponent)
+        loadComponent: () => import("./chunk-DDERCDR6.js").then((m) => m.SemaforoComponent)
       },
       {
         path: "firma-digital",
-        loadComponent: () => import("./chunk-3Y6BUKIS.js").then((m) => m.FirmaDigitalComponent)
+        loadComponent: () => import("./chunk-RJ7STKJQ.js").then((m) => m.FirmaDigitalComponent)
       },
       {
         path: "reportes",
-        loadComponent: () => import("./chunk-5OLFFEKV.js").then((m) => m.ReportesComponent)
+        loadComponent: () => import("./chunk-ZWDQ3G5I.js").then((m) => m.ReportesComponent)
       },
       {
         path: "configuracion",
-        loadComponent: () => import("./chunk-SX27MPZ4.js").then((m) => m.ConfiguracionComponent)
+        loadComponent: () => import("./chunk-S633CAJP.js").then((m) => m.ConfiguracionComponent)
       }
     ]
   },
@@ -165,21 +163,7 @@ var routes = [
 ];
 
 // src/app/core/interceptors/auth.interceptor.ts
-var authInterceptor = (req, next) => {
-  const auth = inject(AuthService);
-  if (!req.url.startsWith(environment.apiBaseUrl)) {
-    return next(req);
-  }
-  return from(auth.getSessionToken()).pipe(switchMap((token) => {
-    if (token) {
-      const authReq = req.clone({
-        setHeaders: { Authorization: `Bearer ${token}` }
-      });
-      return next(authReq);
-    }
-    return next(req);
-  }));
-};
+var authInterceptor = (req, next) => next(req);
 
 // src/app/app.config.ts
 var appConfig = {

@@ -1,9 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, from, of } from 'rxjs';
-import { map, tap, catchError, switchMap } from 'rxjs/operators';
-import { Session, User as SupaUser } from '@supabase/supabase-js';
-import { getSupabaseClient } from './supabase-client';
+import { BehaviorSubject, Observable, of } from 'rxjs';
 
 // ── Tipos de perfil ─────────────────────────────────────────
 export type UserRole = 'egis' | 'constructora';
@@ -26,8 +23,6 @@ const ROLE_KEY = 'egis_selected_role';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private supabase = getSupabaseClient();
-
   /** Stream reactivo del usuario autenticado (null = no logueado) */
   private userSubject = new BehaviorSubject<User | null>(null);
   user$ = this.userSubject.asObservable();
@@ -37,43 +32,8 @@ export class AuthService {
   ready$ = this.readySubject.asObservable();
 
   constructor(private router: Router) {
-    this.initSession();
-  }
-
-  // ── Inicialización: restaurar sesión tras refresh ──────────
-  private async initSession(): Promise<void> {
-    try {
-      const { data } = await this.supabase.auth.getSession();
-      if (data.session) {
-        this.setUserFromSession(data.session);
-      }
-    } catch {
-      // sin sesión: no-op
-    } finally {
-      this.readySubject.next(true);
-    }
-
-    // Escuchar cambios de sesión (refresh token, logout en otra tab)
-    this.supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        this.setUserFromSession(session);
-      } else {
-        this.userSubject.next(null);
-        localStorage.removeItem(ROLE_KEY);
-      }
-    });
-  }
-
-  private setUserFromSession(session: Session): void {
-    const su = session.user;
-    const savedRole = localStorage.getItem(ROLE_KEY) as UserRole | null;
-    const user: User = {
-      id: su.id,
-      email: su.email ?? '',
-      nombre: su.user_metadata?.['nombre'] ?? su.email?.split('@')[0] ?? '',
-      role: savedRole ?? 'egis',
-    };
-    this.userSubject.next(user);
+    // En modo desarrollo sin backend de auth, marcamos como listo inmediato.
+    this.readySubject.next(true);
   }
 
   // ── Getters sincrónicos ───────────────────────────────────
@@ -82,13 +42,8 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    // se obtiene asíncronamente; para el interceptor usar getSessionToken()
+    // Sin backend de auth: no usamos token.
     return null;
-  }
-
-  async getSessionToken(): Promise<string | null> {
-    const { data } = await this.supabase.auth.getSession();
-    return data.session?.access_token ?? null;
   }
 
   isLoggedIn(): boolean {
@@ -111,41 +66,34 @@ export class AuthService {
 
   // ── Login con Supabase (paso 2) ───────────────────────────
   login(email: string, password: string): Observable<User> {
-    return from(
-      this.supabase.auth.signInWithPassword({ email, password })
-    ).pipe(
-      map((res) => {
-        if (res.error) throw res.error;
-        const session = res.data.session;
-        if (!session) throw new Error('No se obtuvo sesión.');
-        this.setUserFromSession(session);
-        return this.userSubject.value!;
-      })
-    );
+    // Modo desarrollo: aceptar cualquier correo/contraseña.
+    const savedRole = this.getRole() ?? 'egis';
+    const user: User = {
+      id: `local-${Date.now()}`,
+      email,
+      nombre: email.split('@')[0] || email,
+      role: savedRole,
+    };
+    this.userSubject.next(user);
+    return of(user);
   }
 
   // ── Registro ──────────────────────────────────────────────
   register(email: string, password: string, nombre?: string): Observable<User> {
-    return from(
-      this.supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { nombre: nombre ?? email.split('@')[0] } },
-      })
-    ).pipe(
-      map((res) => {
-        if (res.error) throw res.error;
-        const session = res.data.session;
-        if (!session) throw new Error('Revise su correo para confirmar la cuenta.');
-        this.setUserFromSession(session);
-        return this.userSubject.value!;
-      })
-    );
+    // Modo desarrollo: simular registro y login inmediato.
+    const savedRole = this.getRole() ?? 'egis';
+    const user: User = {
+      id: `local-${Date.now()}`,
+      email,
+      nombre: (nombre ?? email.split('@')[0]) || email,
+      role: savedRole,
+    };
+    this.userSubject.next(user);
+    return of(user);
   }
 
   // ── Logout ────────────────────────────────────────────────
   async logout(): Promise<void> {
-    await this.supabase.auth.signOut();
     this.userSubject.next(null);
     localStorage.removeItem(ROLE_KEY);
     this.router.navigate(['/']);

@@ -1,33 +1,76 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { map, Observable } from 'rxjs';
-import { API_BASE_URL } from './api-config';
+import { from, map, Observable } from 'rxjs';
 import type { Project } from '../../shared/models';
 import { type ApiProyecto, mapProyecto, mapProyectos, mapProjectToApi } from '../../shared/mappers';
+import { getSupabaseClient } from './supabase-client';
+
+// Tabla creada por Django para el modelo Proyecto
+const TABLE = 'egis_app_proyecto';
 
 @Injectable({ providedIn: 'root' })
 export class ProyectosService {
-  private readonly url = `${API_BASE_URL}/proyectos/`;
-
-  constructor(private http: HttpClient) {}
+  private supabase = getSupabaseClient();
 
   getAll(): Observable<Project[]> {
-    return this.http.get<ApiProyecto[]>(this.url).pipe(map(mapProyectos));
+    return from(
+      this.supabase
+        .from(TABLE)
+        .select('*')
+        .order('id', { ascending: true })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw error;
+        const rows = (data ?? []) as ApiProyecto[];
+        return mapProyectos(rows);
+      })
+    );
   }
 
   getById(id: string): Observable<Project> {
-    return this.http.get<ApiProyecto>(`${this.url}${id}/`).pipe(map(mapProyecto));
+    return from(
+      this.supabase
+        .from(TABLE)
+        .select('*')
+        .eq('id', id)
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error || !data) throw error ?? new Error('Proyecto no encontrado');
+        return mapProyecto(data);
+      })
+    );
   }
 
   create(project: Partial<Project>): Observable<Project> {
-    return this.http
-      .post<ApiProyecto>(this.url, mapProjectToApi(project))
-      .pipe(map(mapProyecto));
+    const payload = mapProjectToApi(project);
+    return from(
+      this.supabase
+        .from(TABLE)
+        .insert(payload)
+        .select('*')
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error || !data) throw error ?? new Error('Error al crear proyecto');
+        return mapProyecto(data);
+      })
+    );
   }
 
   update(id: string, project: Partial<Project>): Observable<Project> {
-    return this.http
-      .patch<ApiProyecto>(`${this.url}${id}/`, mapProjectToApi(project))
-      .pipe(map(mapProyecto));
+    const payload = mapProjectToApi(project);
+    return from(
+      this.supabase
+        .from(TABLE)
+        .update(payload)
+        .eq('id', id)
+        .select('*')
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error || !data) throw error ?? new Error('Error al actualizar proyecto');
+        return mapProyecto(data);
+      })
+    );
   }
 }

@@ -4,24 +4,36 @@
       <div class="card mb-3">
         <div class="card-header">
           <h6 class="mb-0">Carga de Documentos</h6>
-          <small class="text-body-secondary">Arrastra PDFs o imágenes para escanear con OCR</small>
+          <small class="text-body-secondary">Use la previsualización de la derecha para arrastrar y soltar archivos</small>
         </div>
         <div class="card-body">
-          <div class="border border-primary border-opacity-25 rounded bg-primary bg-opacity-10 d-flex flex-column align-items-center justify-content-center gap-3 p-4 cursor-pointer" style="min-height: 200px; border-width: 2px;" (click)="scan()" (keydown.enter)="scan()" tabindex="0" role="button">
-            <i class="bi bi-upload display-6 text-primary"></i>
-            <p class="mb-0 fw-medium">{{ isScanning ? 'Escaneando documento...' : 'Drag & Drop o haz clic para subir' }}</p>
-            <small class="text-body-secondary">PDF, JPG, PNG - Max 10MB</small>
-          </div>
+          <p class="small text-body-secondary mb-0">
+            Formatos soportados: PDF, JPG, PNG. Tamaño máximo 10MB.
+          </p>
         </div>
       </div>
       <div class="card">
         <div class="card-header"><h6 class="mb-0">Previsualización</h6></div>
         <div class="card-body">
-          <div class="bg-light rounded d-flex flex-column align-items-center justify-content-center gap-2" style="min-height: 200px;">
+          <div
+            class="bg-light rounded d-flex flex-column align-items-center justify-content-center gap-2 cursor-pointer"
+            style="min-height: 200px;"
+            (click)="triggerFileInput()"
+            (keydown.enter)="triggerFileInput()"
+            (dragover)="onDragOver($event)"
+            (drop)="onDrop($event)"
+            tabindex="0"
+            role="button"
+          >
             <i class="bi bi-eye text-body-secondary"></i>
             <span class="small text-body-secondary">Vista previa del documento</span>
-            <span class="small font-monospace">12345678-9_DOMINIO_2026.pdf</span>
+            @if (selectedFileName) {
+              <span class="small font-monospace">{{ selectedFileName }}</span>
+            } @else {
+              <span class="small font-monospace text-body-secondary">Arrastra un archivo aquí o haz clic para seleccionarlo</span>
+            }
           </div>
+          <input #fileInput type="file" class="d-none" (change)="onFileSelected($event)" />
         </div>
       </div>
     </div>
