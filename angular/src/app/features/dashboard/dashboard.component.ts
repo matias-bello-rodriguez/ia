@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DashboardService } from '../../core/services';
-import type { BarDataItem, DashboardAlert, MetricItem, PieDataItem } from '../../shared/models';
+import { DashboardService, MetricItem, BarDataItem, PieDataItem } from '../../core/services/dashboard.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -13,7 +12,6 @@ export class DashboardComponent implements OnInit {
   metrics: MetricItem[] = [];
   barData: BarDataItem[] = [];
   pieData: PieDataItem[] = [];
-  alerts: DashboardAlert[] = [];
   loading = true;
 
   constructor(private dashboardService: DashboardService) {}
@@ -24,7 +22,6 @@ export class DashboardComponent implements OnInit {
         this.metrics = data.metrics;
         this.barData = data.barData;
         this.pieData = data.pieData;
-        this.alerts = data.alerts;
         this.loading = false;
       },
       error: () => {

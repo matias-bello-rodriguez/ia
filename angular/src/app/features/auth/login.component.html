@@ -10,16 +10,6 @@
         <p class="auth-subtitle">Gestión Habitacional</p>
       </div>
 
-      <!-- Badge con el rol seleccionado -->
-      <div class="text-center mb-4">
-        <span class="badge rounded-pill px-3 py-2"
-              [class.bg-primary]="selectedRole === 'egis'"
-              [class.bg-pink-otic]="selectedRole === 'constructora'">
-          <i class="bi me-1" [ngClass]="roleIcon"></i>
-          Acceso {{ roleLabel }}
-        </span>
-      </div>
-
       <h2 class="auth-form-title text-center mt-2 mb-4">Iniciar Sesión</h2>
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form">
@@ -69,9 +59,7 @@
 
         <button
           type="submit"
-          class="btn btn-auto-width w-100 mb-3"
-          [class.btn-primary-otic]="selectedRole === 'egis'"
-          [class.btn-pink-otic]="selectedRole === 'constructora'"
+          class="btn btn-primary-otic btn-auto-width w-100 mb-3"
           [disabled]="loading"
         >
           @if (loading) {
@@ -85,7 +73,7 @@
           class="btn btn-outline-otic btn-auto-width w-100"
           (click)="goBack()"
         >
-          <i class="bi bi-arrow-left me-1"></i>Cambiar Perfil
+          <i class="bi bi-arrow-left me-1"></i>Volver al inicio
         </button>
       </form>
     </div>

@@ -2,37 +2,36 @@
   @if (loading) {
     <div class="text-center py-5">
       <div class="spinner-border text-primary" role="status"></div>
-      <p class="small text-body-secondary mt-2 mb-0">Cargando contactos...</p>
+      <p class="small text-body-secondary mt-2 mb-0">Cargando actividad...</p>
     </div>
   } @else {
   <div class="row g-4">
     <div class="col-12 col-lg-4">
       <div class="card">
         <div class="card-header">
-          <h6 class="mb-0">Contactos Pendientes</h6>
-          <small class="text-body-secondary">Beneficiarios con documentos faltantes</small>
+          <h6 class="mb-0">Actividad Reciente</h6>
+          <small class="text-body-secondary">Últimos cambios de estado de documentos</small>
         </div>
         <div class="card-body p-2">
-          @for (c of contacts; track c.id ?? c.rut; let i = $index) {
+          @for (a of actividades; track a.id; let i = $index) {
             <button type="button" class="btn btn-light w-100 text-start d-flex align-items-start gap-2 p-3 mb-2 rounded border" [class.border-primary]="selectedIndex === i" [class.bg-primary]="selectedIndex === i" [class.bg-opacity-10]="selectedIndex === i" (click)="selectedIndex = i">
               <div class="position-relative">
-                <span class="rounded-circle bg-secondary bg-opacity-25 d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px;"><i class="bi bi-person text-body-secondary"></i></span>
-                <span class="position-absolute top-0 start-100 translate-middle rounded-circle border border-2 border-white" [class.bg-danger]="c.urgency === 'critical'" [class.bg-warning]="c.urgency === 'warning'" style="width: 12px; height: 12px;"></span>
+                <span class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" [style.background]="estadoColor(a.nuevo_estado)" [style.opacity]="0.2">
+                  <i class="bi bi-file-earmark-text"></i>
+                </span>
               </div>
-              <div class="grow min-w-0">
-                <div class="fw-medium text-truncate">{{ c.name }}</div>
-                <div class="small text-body-secondary">{{ c.committee }}</div>
+              <div class="flex-grow-1 min-w-0">
+                <div class="fw-medium text-truncate">{{ a.usuario_accion?.nombre_completo ?? 'Sistema' }}</div>
+                <div class="small text-body-secondary">{{ a.documento?.nombre_archivo ?? 'Documento' }}</div>
                 <div class="d-flex flex-wrap gap-1 mt-1">
-                  @for (doc of c.missing; track doc) {
-                    <span class="badge bg-danger bg-opacity-10 text-danger small">{{ doc }}</span>
-                  }
+                  <span class="badge" [style.background]="estadoColor(a.nuevo_estado)" style="color: white;">{{ estadoLabel(a.nuevo_estado) }}</span>
                 </div>
-                <div class="small text-body-secondary mt-1"><i class="bi bi-clock me-1"></i>{{ c.lastContact }}</div>
+                <div class="small text-body-secondary mt-1"><i class="bi bi-clock me-1"></i>{{ a.fecha_cambio | date:'dd/MM/yyyy HH:mm' }}</div>
               </div>
-              @if (c.id != null && sentMessages.has(c.id)) {
-                <i class="bi bi-check-circle-fill text-success"></i>
-              }
             </button>
+          }
+          @if (actividades.length === 0) {
+            <div class="text-center py-4 text-body-secondary small">No hay actividad reciente</div>
           }
         </div>
       </div>
@@ -43,32 +42,36 @@
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
-              <span class="fw-medium">{{ selected.name }}</span>
-              <span class="badge ms-2" [class.badge-cerrada]="selected.urgency === 'critical'" [class.badge-borrador]="selected.urgency === 'warning'">
-                {{ selected.urgency === 'critical' ? 'Urgente' : 'Pendiente' }}
+              <span class="fw-medium">{{ selected.documento?.nombre_archivo ?? 'Documento' }}</span>
+              <span class="badge ms-2" [style.background]="estadoColor(selected.nuevo_estado)" style="color: white;">
+                {{ estadoLabel(selected.nuevo_estado) }}
               </span>
-              <div class="small text-body-secondary mt-1"><i class="bi bi-telephone me-1"></i>{{ selected.phone }}</div>
+              <div class="small text-body-secondary mt-1"><i class="bi bi-person me-1"></i>{{ selected.usuario_accion?.nombre_completo ?? 'Sistema' }} ({{ selected.usuario_accion?.rol ?? '' }})</div>
             </div>
           </div>
           <div class="card-body">
-            <div class="rounded p-3 bg-success bg-opacity-10 border border-success border-opacity-25 mb-3">
-              <div class="small text-body-secondary mb-2"><i class="bi bi-stars text-primary me-1"></i> Mensaje generado por IA</div>
-              <p class="small mb-0">{{ message(selected) }}</p>
+            <div class="mb-3">
+              <h6 class="small text-body-secondary mb-2">Detalle del cambio</h6>
+              <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                @if (selected.estado_anterior) {
+                  <span class="badge bg-secondary">{{ estadoLabel(selected.estado_anterior) }}</span>
+                  <i class="bi bi-arrow-right"></i>
+                }
+                <span class="badge" [style.background]="estadoColor(selected.nuevo_estado)" style="color: white;">{{ estadoLabel(selected.nuevo_estado) }}</span>
+              </div>
+              @if (selected.comentario_rechazo_aprobacion) {
+                <div class="rounded p-3 bg-light border mb-3">
+                  <div class="small text-body-secondary mb-1"><i class="bi bi-chat-text me-1"></i>Comentario</div>
+                  <p class="small mb-0">{{ selected.comentario_rechazo_aprobacion }}</p>
+                </div>
+              }
             </div>
             <div class="mb-3">
-              <h6 class="small text-body-secondary mb-2">Documentos solicitados:</h6>
-              <div class="d-flex flex-wrap gap-2">
-                @for (doc of selected.missing; track doc) {
-                  <span class="badge bg-danger"><i class="bi bi-exclamation-circle me-1"></i>{{ doc }}</span>
-                }
+              <h6 class="small text-body-secondary mb-2">Información del documento</h6>
+              <div class="d-flex flex-column gap-1 small">
+                <div><strong>Tipo:</strong> {{ selected.documento?.tipo_documento ?? '—' }}</div>
+                <div><strong>Fecha:</strong> {{ selected.fecha_cambio | date:'dd/MM/yyyy HH:mm:ss' }}</div>
               </div>
-            </div>
-            <hr>
-            <div class="d-flex justify-content-between align-items-center">
-              <span class="small text-body-secondary">Enviar por WhatsApp / SMS</span>
-              <button type="button" class="btn btn-primary-otic btn-auto-width" (click)="selected && enviar(selected)" [disabled]="selected && selected.id != null && sentMessages.has(selected.id)">
-                <i class="bi bi-send me-1"></i> Enviar
-              </button>
             </div>
           </div>
         </div>

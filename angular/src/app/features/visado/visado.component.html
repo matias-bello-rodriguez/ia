@@ -1,23 +1,17 @@
 <div class="d-flex flex-column gap-4">
   <div class="row g-4">
+    <!-- Panel izquierdo: Subida de documento -->
     <div class="col-12 col-lg-6">
-      <div class="card mb-3">
-        <div class="card-header">
-          <h6 class="mb-0">Carga de Documentos</h6>
-          <small class="text-body-secondary">Use la previsualización de la derecha para arrastrar y soltar archivos</small>
-        </div>
-        <div class="card-body">
-          <p class="small text-body-secondary mb-0">
-            Formatos soportados: PDF, JPG, PNG. Tamaño máximo 10MB.
-          </p>
-        </div>
-      </div>
       <div class="card">
-        <div class="card-header"><h6 class="mb-0">Previsualización</h6></div>
+        <div class="card-header">
+          <h6 class="mb-0"><i class="bi bi-cloud-upload me-2"></i>Subir Documento</h6>
+          <small class="text-body-secondary">Seleccione un archivo, tipo de documento y proyecto</small>
+        </div>
         <div class="card-body">
+          <!-- Área de drop / selección de archivo -->
           <div
-            class="bg-light rounded d-flex flex-column align-items-center justify-content-center gap-2 cursor-pointer"
-            style="min-height: 200px;"
+            class="bg-light rounded d-flex flex-column align-items-center justify-content-center gap-2 cursor-pointer mb-3"
+            style="min-height: 160px;"
             (click)="triggerFileInput()"
             (keydown.enter)="triggerFileInput()"
             (dragover)="onDragOver($event)"
@@ -25,128 +19,123 @@
             tabindex="0"
             role="button"
           >
-            <i class="bi bi-eye text-body-secondary"></i>
-            <span class="small text-body-secondary">Vista previa del documento</span>
+            <i class="bi bi-file-earmark-arrow-up fs-2 text-body-secondary"></i>
             @if (selectedFileName) {
-              <span class="small font-monospace">{{ selectedFileName }}</span>
+              <span class="small font-monospace fw-medium">{{ selectedFileName }}</span>
+              <button type="button" class="btn btn-sm btn-outline-danger" (click)="clearFile(); $event.stopPropagation()">
+                <i class="bi bi-x-lg me-1"></i>Quitar
+              </button>
             } @else {
-              <span class="small font-monospace text-body-secondary">Arrastra un archivo aquí o haz clic para seleccionarlo</span>
+              <span class="small text-body-secondary">Arrastra un archivo aquí o haz clic para seleccionar</span>
+              <span class="small text-body-secondary">PDF, JPG, PNG — máx. 10MB</span>
             }
           </div>
-          <input #fileInput type="file" class="d-none" (change)="onFileSelected($event)" />
+          <input #fileInput type="file" class="d-none" (change)="onFileSelected($event)" accept=".pdf,.jpg,.jpeg,.png" />
+
+          <!-- Tipo de documento -->
+          <div class="mb-3">
+            <label class="form-label">Tipo de Documento</label>
+            <select class="form-select" [(ngModel)]="tipoDocumento">
+              <option value="">Seleccione...</option>
+              @for (tipo of tiposDocumento; track tipo.value) {
+                <option [value]="tipo.value">{{ tipo.label }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- ID del proyecto -->
+          <div class="mb-3">
+            <label class="form-label">ID del Proyecto</label>
+            <input type="text" class="form-control" [(ngModel)]="proyectoId" placeholder="UUID del proyecto" />
+          </div>
+
+          @if (errorMsg) {
+            <div class="alert alert-danger small py-2">{{ errorMsg }}</div>
+          }
+
+          <button
+            type="button"
+            class="btn btn-primary-otic btn-auto-width w-100"
+            [disabled]="!canUpload"
+            (click)="upload()"
+          >
+            @if (isUploading) {
+              <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+              Subiendo...
+            } @else {
+              <i class="bi bi-upload me-1"></i>Subir Documento
+            }
+          </button>
         </div>
       </div>
     </div>
 
+    <!-- Panel derecho: Resultado de subida -->
     <div class="col-12 col-lg-6">
-      <div class="card mb-3">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-robot text-primary"></i>
-            <h6 class="mb-0">Resultados de Extracción IA</h6>
-          </div>
-          <button type="button" class="btn btn-outline-otic btn-auto-width" (click)="scan()" [disabled]="isScanning">
-            <i class="bi bi-upc-scan me-1"></i>{{ isScanning ? 'Procesando...' : 'Visar con IA' }}
-          </button>
+      <div class="card h-100">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="bi bi-check2-square me-2"></i>Resultado</h6>
         </div>
         <div class="card-body">
-          @if (showResults) {
-            <div class="d-flex flex-column gap-2">
-              @for (f of extractionResults; track f.label) {
-                <div class="border rounded p-3">
-                  <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                      <span class="small text-body-secondary">{{ f.label }}</span>
-                      <div class="fw-medium">{{ f.value }}</div>
-                    </div>
-                    <span class="badge" [class.badge-enviada]="f.status === 'approved'" [class.badge-cerrada]="f.status === 'rejected'" [class.badge-borrador]="f.status === 'alert'">{{ statusLabel(f.status) }}</span>
+          @if (showResults && uploadedDoc) {
+            <div class="d-flex flex-column gap-3">
+              <div class="alert alert-success small py-2 mb-0">
+                <i class="bi bi-check-circle me-1"></i>Documento subido exitosamente.
+              </div>
+              <div class="border rounded p-3">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <div class="fw-medium">{{ uploadedDoc.nombre_archivo }}</div>
+                    <small class="text-body-secondary">{{ uploadedDoc.tipo_documento }}</small>
                   </div>
-                  @if (f.note) {
-                    <div class="mt-2 small rounded p-2" [class.bg-danger]="f.status === 'rejected'" [class.bg-opacity-10]="f.status === 'rejected'" [class.text-danger]="f.status === 'rejected'" [class.bg-warning]="f.status === 'alert'" [class.bg-opacity-10]="f.status === 'alert'" [class.text-warning]="f.status === 'alert'">
-                      {{ f.note }}
-                    </div>
-                  }
+                  <span class="badge" [ngClass]="semaforoClass(uploadedDoc.estado_actual)">
+                    {{ semaforoLabel(uploadedDoc.estado_actual) }}
+                  </span>
                 </div>
-              }
+              </div>
             </div>
           } @else {
             <div class="d-flex flex-column align-items-center justify-content-center gap-3 text-body-secondary" style="min-height: 200px;">
-              <div class="spinner-border text-primary"></div>
-              <span>Analizando documento con IA...</span>
+              <i class="bi bi-inbox fs-1"></i>
+              <span class="small">Sube un documento para ver el resultado aquí</span>
             </div>
           }
         </div>
       </div>
-      @if (showResults) {
-        <div class="card">
-          <div class="card-header"><h6 class="mb-0">Resumen de Validación</h6></div>
-          <div class="card-body">
-            <div class="row g-2 text-center">
-              <div class="col-4">
-                <div class="rounded p-3 bg-success bg-opacity-10">
-                  <i class="bi bi-check-circle text-success"></i>
-                  <div class="fw-bold text-success">3</div>
-                  <small class="text-body-secondary">Aprobados</small>
-                </div>
-              </div>
-              <div class="col-4">
-                <div class="rounded p-3 bg-danger bg-opacity-10">
-                  <i class="bi bi-x-circle text-danger"></i>
-                  <div class="fw-bold text-danger">1</div>
-                  <small class="text-body-secondary">Rechazados</small>
-                </div>
-              </div>
-              <div class="col-4">
-                <div class="rounded p-3 bg-warning bg-opacity-10">
-                  <i class="bi bi-exclamation-circle text-warning"></i>
-                  <div class="fw-bold text-warning">1</div>
-                  <small class="text-body-secondary">Alertas</small>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      }
     </div>
   </div>
 
+  <!-- Cola de documentos -->
   <div class="card">
-    <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-start gap-2">
-      <div>
-        <h6 class="mb-0">Cola de Documentos Visados</h6>
-        <small class="text-body-secondary">Historial de documentos procesados por la IA</small>
-      </div>
-      <div class="d-flex align-items-center gap-2">
-        <i class="bi bi-calendar-check text-body-secondary"></i>
-        <select class="form-select form-select-sm" style="width: 180px;" [(ngModel)]="vigenciaFilter" (ngModelChange)="onFilterChange()">
-          <option value="todos">Todos</option>
-          <option value="vigente">Vigentes</option>
-          <option value="por_vencer">Por vencer</option>
-          <option value="vencido">Vencidos</option>
-        </select>
-      </div>
+    <div class="card-header">
+      <h6 class="mb-0"><i class="bi bi-list-check me-2"></i>Documentos del Sistema</h6>
+      <small class="text-body-secondary">Todos los documentos cargados</small>
     </div>
     <div class="card-body">
       @if (loadingQueue) {
         <div class="d-flex flex-column align-items-center justify-content-center gap-3 text-body-secondary py-4">
           <div class="spinner-border text-primary"></div>
-          <span>Cargando cola...</span>
+          <span>Cargando documentos...</span>
         </div>
+      } @else if (filteredQueue.length === 0) {
+        <p class="text-body-secondary small mb-0">No hay documentos cargados.</p>
       } @else {
-      <div class="d-flex flex-column gap-2">
-        @for (doc of filteredQueue; track doc.id ?? doc.name) {
-          <div class="d-flex align-items-center justify-content-between border rounded p-3">
-            <div class="d-flex align-items-center gap-3">
-              <i class="bi bi-file-pdf text-body-secondary"></i>
-              <div>
-                <div class="fw-medium font-monospace small">{{ doc.name }}</div>
-                <div class="small text-body-secondary">{{ doc.type }}</div>
+        <div class="d-flex flex-column gap-2">
+          @for (doc of filteredQueue; track doc.id) {
+            <div class="d-flex align-items-center justify-content-between border rounded p-3">
+              <div class="d-flex align-items-center gap-3">
+                <i class="bi" [class]="semaforoIcon(doc.estado_actual)"></i>
+                <div>
+                  <div class="fw-medium font-monospace small">{{ doc.nombre_archivo }}</div>
+                  <div class="small text-body-secondary">{{ doc.tipo_documento }}</div>
+                </div>
               </div>
+              <span class="badge" [ngClass]="semaforoClass(doc.estado_actual)">
+                {{ semaforoLabel(doc.estado_actual) }}
+              </span>
             </div>
-            <span class="badge" [class.badge-enviada]="doc.status === 'approved'" [class.badge-cerrada]="doc.status === 'rejected'" [class.badge-borrador]="doc.status === 'alert'">{{ statusLabel(doc.status) }}</span>
-          </div>
-        }
-      </div>
+          }
+        </div>
       }
     </div>
   </div>

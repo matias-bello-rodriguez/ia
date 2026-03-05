@@ -1,12 +1,14 @@
 import {
   APP_BASE_HREF,
   AsyncPipe,
+  BrowserPlatformLocation,
   CommonModule,
   CurrencyPipe,
   DATE_PIPE_DEFAULT_OPTIONS,
   DATE_PIPE_DEFAULT_TIMEZONE,
   DatePipe,
   DecimalPipe,
+  DomAdapter,
   FormStyle,
   FormatWidth,
   HashLocationStrategy,
@@ -15,6 +17,7 @@ import {
   IMAGE_LOADER,
   JsonPipe,
   KeyValuePipe,
+  LOCATION_INITIALIZED,
   Location,
   LocationStrategy,
   LowerCasePipe,
@@ -45,6 +48,7 @@ import {
   PRECONNECT_CHECK_BLOCKLIST,
   PathLocationStrategy,
   PercentPipe,
+  PlatformLocation,
   PlatformNavigation,
   Plural,
   SlicePipe,
@@ -55,11 +59,13 @@ import {
   VERSION,
   ViewportScroller,
   WeekDay,
+  XhrFactory,
   formatCurrency,
   formatDate,
   formatNumber,
   formatPercent,
   getCurrencySymbol,
+  getDOM,
   getLocaleCurrencyCode,
   getLocaleCurrencyName,
   getLocaleCurrencySymbol,
@@ -83,31 +89,24 @@ import {
   isPlatformBrowser,
   isPlatformServer,
   normalizeQueryParams,
+  parseCookieValue,
   provideCloudflareLoader,
   provideCloudinaryLoader,
   provideImageKitLoader,
   provideImgixLoader,
   provideNetlifyLoader,
-  registerLocaleData
-} from "./chunk-MFIUSJK5.js";
-import {
-  BrowserPlatformLocation,
-  DomAdapter,
-  LOCATION_INITIALIZED,
-  PlatformLocation,
-  XhrFactory,
-  getDOM,
-  parseCookieValue,
+  registerLocaleData,
   setRootDomAdapter
-} from "./chunk-XJJP5K7K.js";
+} from "./chunk-NBMFWIXP.js";
 import {
   DOCUMENT,
   IMAGE_CONFIG
-} from "./chunk-LQHIYIEU.js";
-import "./chunk-HWYXSU2G.js";
-import "./chunk-JRFR6BLO.js";
-import "./chunk-MARUHEWW.js";
-import "./chunk-S35DAJRX.js";
+} from "./chunk-GZKLPU6V.js";
+import "./chunk-N2G3NVBP.js";
+import "./chunk-7X3X2PE3.js";
+import "./chunk-ZNVZ47EP.js";
+import "./chunk-B2KI3AIV.js";
+import "./chunk-5K356HEJ.js";
 export {
   APP_BASE_HREF,
   AsyncPipe,

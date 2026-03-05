@@ -2,22 +2,24 @@ import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DocumentosService } from '../../core/services/documentos.service';
-import type { DocQueueItem, ExtractedField, VisadoResponse } from '../../shared/models';
+import { AuthService } from '../../core/services/auth.service';
+import { AlertService } from '../../core/services/alert.service';
+import type { Documento, EstadoSemaforo } from '../../shared/models/database.types';
+import { SEMAFORO_LABELS, SEMAFORO_COLORS } from '../../shared/models/database.types';
 
-/** Tipos de documento que el backend entiende */
+/** Tipos de documento reconocidos por el sistema */
 const TIPOS_DOCUMENTO = [
-  { value: 'contrato', label: 'Contrato de Construcción' },
-  { value: 'resolucion_exenta', label: 'Resolución Exenta' },
-  { value: 'informe_universidad', label: 'Informe Universidad (Silófagos)' },
-  { value: 'certificado_dominio', label: 'Certificado de Dominio Vigente' },
-  { value: 'certificado_hipoteca', label: 'Certificado de Hipotecas y Gravámenes' },
-  { value: 'permiso_edificacion', label: 'Permiso de Edificación' },
-  { value: 'recepcion_municipal', label: 'Recepción Municipal' },
-  { value: 'tasacion', label: 'Tasación' },
-  { value: 'otro', label: 'Otro' },
+  { value: 'Contrato', label: 'Contrato de Construcción' },
+  { value: 'Resolución Exenta', label: 'Resolución Exenta' },
+  { value: 'Informe Universidad', label: 'Informe Universidad (Xilófagos)' },
+  { value: 'Certificado Dominio', label: 'Certificado de Dominio Vigente' },
+  { value: 'Certificado Hipoteca', label: 'Certificado de Hipotecas y Gravámenes' },
+  { value: 'Permiso Edificación', label: 'Permiso de Edificación' },
+  { value: 'Recepción Municipal', label: 'Recepción Municipal' },
+  { value: 'Boleta de Garantía', label: 'Boleta de Garantía' },
+  { value: 'Tasación', label: 'Tasación' },
+  { value: 'Otro', label: 'Otro' },
 ] as const;
-
-type VigenciaDoc = 'vigente' | 'por_vencer' | 'vencido';
 
 @Component({
   selector: 'app-visado',
@@ -34,23 +36,23 @@ export class VisadoComponent implements OnInit {
   selectedFile: File | null = null;
   selectedFileName = '';
   tipoDocumento = '';
-  carpetaId: string | null = null;
+  proyectoId = '';
 
-  // ── Resultado IA ──────────────────────────────────────────
-  extractionResults: ExtractedField[] = [];
-  resumenEjecutivo = '';
-  scoreConfianza = 0;
-  alertasMonto: string[] = [];
-  isScanning = false;
+  // ── Resultado de subida ───────────────────────────────────
+  isUploading = false;
   showResults = false;
+  uploadedDoc: Documento | null = null;
   errorMsg = '';
 
-  // ── Cola ──────────────────────────────────────────────────
-  documentQueue: DocQueueItem[] = [];
-  vigenciaFilter: 'todos' | VigenciaDoc = 'todos';
+  // ── Cola de documentos ────────────────────────────────────
+  documentQueue: Documento[] = [];
   loadingQueue = true;
 
-  constructor(private documentosService: DocumentosService) {}
+  constructor(
+    private documentosService: DocumentosService,
+    private auth: AuthService,
+    private alert: AlertService,
+  ) {}
 
   ngOnInit(): void {
     this.loadQueue();
@@ -95,13 +97,12 @@ export class VisadoComponent implements OnInit {
     if (this.fileInput) this.fileInput.nativeElement.value = '';
   }
 
-  // ── Cola de documentos ────────────────────────────────────
+  // ── Cola de documentos (todos los que el usuario puede ver) ──
 
   loadQueue(): void {
-    const vigencia = this.vigenciaFilter === 'todos' ? undefined : this.vigenciaFilter;
     this.loadingQueue = true;
-    this.documentosService.getCola(vigencia).subscribe({
-      next: (list) => {
+    this.documentosService.getAll().subscribe({
+      next: (list: Documento[]) => {
         this.documentQueue = list;
         this.loadingQueue = false;
       },
@@ -111,81 +112,59 @@ export class VisadoComponent implements OnInit {
     });
   }
 
-  get filteredQueue(): DocQueueItem[] {
+  get filteredQueue(): Documento[] {
     return this.documentQueue;
   }
 
-  onFilterChange(): void {
-    this.loadQueue();
+  // ── Subir documento ───────────────────────────────────────
+
+  get canUpload(): boolean {
+    return !!this.selectedFile && !!this.tipoDocumento && !!this.proyectoId && !this.isUploading;
   }
 
-  // ── Visado con IA ─────────────────────────────────────────
-
-  get canScan(): boolean {
-    return !!this.selectedFile && !!this.tipoDocumento && !this.isScanning;
-  }
-
-  scan(): void {
-    if (!this.canScan) return;
-    this.isScanning = true;
+  upload(): void {
+    if (!this.canUpload) return;
+    this.isUploading = true;
     this.showResults = false;
     this.errorMsg = '';
 
     this.documentosService
-      .visar(this.selectedFile!, this.tipoDocumento, this.carpetaId ?? undefined)
+      .subirDocumento(this.selectedFile!, this.proyectoId, this.tipoDocumento)
       .subscribe({
-        next: (res: VisadoResponse) => {
-          this.extractionResults = res.resultados;
-          this.resumenEjecutivo = res.resumen_ejecutivo ?? '';
-          this.scoreConfianza = res.score_confianza ?? 0;
-          this.alertasMonto = res.alertas_monto ?? [];
-          this.isScanning = false;
+        next: (doc: Documento) => {
+          this.uploadedDoc = doc;
+          this.isUploading = false;
           this.showResults = true;
+          this.alert.success('Documento subido exitosamente con estado "Pendiente".');
           this.loadQueue();
         },
-        error: (err) => {
-          this.isScanning = false;
+        error: (err: Error) => {
+          this.isUploading = false;
           this.showResults = false;
-          this.errorMsg = err?.error?.detail ?? 'Error al procesar documento con IA.';
+          this.errorMsg = err?.message ?? 'Error al subir documento.';
         },
       });
   }
 
   // ── Helpers de UI ─────────────────────────────────────────
 
-  get approvedCount(): number {
-    return this.extractionResults.filter((f) => f.status === 'approved').length;
-  }
-  get rejectedCount(): number {
-    return this.extractionResults.filter((f) => f.status === 'rejected').length;
-  }
-  get alertCount(): number {
-    return this.extractionResults.filter((f) => f.status === 'alert').length;
-  }
-
-  statusLabel(s: ExtractedField['status']): string {
-    if (s === 'approved') return 'Aprobado';
-    if (s === 'rejected') return 'Rechazado';
-    return 'Alerta';
-  }
-
-  semaforoClass(s?: string): string {
-    if (s === 'verde') return 'text-bg-success';
-    if (s === 'amarillo') return 'text-bg-warning';
-    if (s === 'rojo') return 'text-bg-danger';
+  semaforoClass(estado?: EstadoSemaforo): string {
+    if (estado === 'aprobado_verde') return 'text-bg-success';
+    if (estado === 'pendiente_amarillo') return 'text-bg-warning';
+    if (estado === 'en_proceso_naranja') return 'text-bg-info';
+    if (estado === 'rechazado_rojo') return 'text-bg-danger';
     return 'text-bg-secondary';
   }
 
-  semaforoIcon(s?: string): string {
-    if (s === 'verde') return 'bi-check-circle-fill';
-    if (s === 'amarillo') return 'bi-exclamation-triangle-fill';
-    if (s === 'rojo') return 'bi-x-circle-fill';
-    return 'bi-question-circle';
+  semaforoLabel(estado?: EstadoSemaforo): string {
+    return estado ? SEMAFORO_LABELS[estado] : '—';
   }
 
-  scoreColor(): string {
-    if (this.scoreConfianza >= 0.8) return 'text-success';
-    if (this.scoreConfianza >= 0.5) return 'text-warning';
-    return 'text-danger';
+  semaforoIcon(estado?: EstadoSemaforo): string {
+    if (estado === 'aprobado_verde') return 'bi-check-circle-fill';
+    if (estado === 'pendiente_amarillo') return 'bi-exclamation-triangle-fill';
+    if (estado === 'en_proceso_naranja') return 'bi-hourglass-split';
+    if (estado === 'rechazado_rojo') return 'bi-x-circle-fill';
+    return 'bi-question-circle';
   }
 }

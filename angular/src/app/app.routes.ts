@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, egisGuard, constructoraGuard, publicOnlyGuard } from './core/guards/auth.guard';
+import { authGuard, egisGuard, constructoraGuard, serviuGuard, publicOnlyGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'inicio' },

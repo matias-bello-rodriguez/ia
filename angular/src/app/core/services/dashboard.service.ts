@@ -1,75 +1,135 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { map, Observable } from 'rxjs';
-import { API_BASE_URL } from './api-config';
-import type { BarDataItem, DashboardAlert, MetricItem, PieDataItem } from '../../shared/models';
-import {
-  type ApiDashboardResponse,
-  mapDashboardAlerts,
-  mapDashboardBarData,
-  mapDashboardPieData,
-} from '../../shared/mappers';
+import { from, map, Observable, forkJoin } from 'rxjs';
+import { getSupabaseClient } from './supabase-client';
+import type { EstadoSemaforo, EstadoProyecto } from '../../shared/models/database.types';
+import { SEMAFORO_LABELS, ESTADO_PROYECTO_LABELS } from '../../shared/models/database.types';
 
-const METRIC_ICONS = {
-  totalUfProceso: 'bi-currency-dollar',
-  carpetasListas: 'bi-folder-check',
-  proyectosConstruccion: 'bi-bricks',
-  alertasCriticas: 'bi-exclamation-triangle',
-} as const;
+// ── Tipos para la UI del Dashboard ──────────────────────────
+export interface MetricItem {
+  title: string;
+  value: string;
+  subtitle: string;
+  trend: string;
+  icon: string;
+}
+
+export interface BarDataItem {
+  name: string;
+  value: number;
+  fill?: string;
+}
+
+export interface PieDataItem {
+  name: string;
+  value: number;
+  color?: string;
+}
 
 export interface DashboardData {
   metrics: MetricItem[];
   barData: BarDataItem[];
   pieData: PieDataItem[];
-  alerts: DashboardAlert[];
 }
+
+const SEMAFORO_FILLS: Record<EstadoSemaforo, string> = {
+  pendiente_amarillo: 'var(--bs-warning)',
+  en_proceso_naranja: '#fd7e14',
+  aprobado_verde: 'var(--bs-success)',
+  rechazado_rojo: 'var(--bs-danger)',
+};
+
+const PIE_COLORS = ['var(--bs-primary)', '#6f42c1', 'var(--bs-info)', 'var(--bs-secondary)', 'var(--bs-success)'];
 
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
-  private readonly url = `${API_BASE_URL}/dashboard/`;
+  private supabase = getSupabaseClient();
 
-  constructor(private http: HttpClient) {}
-
+  /**
+   * Consulta directa a Supabase para armar los datos del dashboard.
+   * Usa forkJoin para hacer las queries en paralelo.
+   */
   getDashboard(): Observable<DashboardData> {
-    return this.http.get<ApiDashboardResponse>(this.url).pipe(
-      map((res) => {
-        const m = res.metricas;
+    const proyectos$ = from(
+      this.supabase.from('proyectos').select('id, monto_uf, estado_actual, tipo_subsidio')
+    );
+    const documentos$ = from(
+      this.supabase.from('documentos').select('id, estado_actual')
+    );
+
+    return forkJoin([proyectos$, documentos$]).pipe(
+      map(([proyectosRes, documentosRes]) => {
+        if (proyectosRes.error) throw proyectosRes.error;
+        if (documentosRes.error) throw documentosRes.error;
+
+        const proyectos = proyectosRes.data ?? [];
+        const documentos = documentosRes.data ?? [];
+
+        // ── Métricas ────────────────────────────────────────
+        const totalUf = proyectos.reduce((sum, p) => sum + (Number(p.monto_uf) || 0), 0);
+        const docsAprobados = documentos.filter(d => d.estado_actual === 'aprobado_verde').length;
+        const proyectosEjecucion = proyectos.filter(p => p.estado_actual === 'en_ejecucion').length;
+        const docsRechazados = documentos.filter(d => d.estado_actual === 'rechazado_rojo').length;
+
         const metrics: MetricItem[] = [
           {
             title: 'Total UF en Proceso',
-            value: String(m.totalUfProceso),
+            value: totalUf.toLocaleString('es-CL'),
             subtitle: 'UF activas en subsidios',
-            trend: '+5.2% vs mes anterior',
-            icon: METRIC_ICONS.totalUfProceso,
+            trend: `${proyectos.length} proyectos activos`,
+            icon: 'bi-currency-dollar',
           },
           {
-            title: 'Carpetas 100% Listas',
-            value: String(m.carpetasListas),
-            subtitle: 'Listas para SERVIU',
-            trend: '8 nuevas esta semana',
-            icon: METRIC_ICONS.carpetasListas,
+            title: 'Documentos Aprobados',
+            value: String(docsAprobados),
+            subtitle: 'Con semáforo verde',
+            trend: `de ${documentos.length} totales`,
+            icon: 'bi-folder-check',
           },
           {
-            title: 'Proyectos en Construcción',
-            value: String(m.proyectosConstruccion),
+            title: 'Proyectos en Ejecución',
+            value: String(proyectosEjecucion),
             subtitle: 'En ejecución activa',
-            trend: '3 por iniciar',
-            icon: METRIC_ICONS.proyectosConstruccion,
+            trend: `${proyectos.filter(p => p.estado_actual === 'recopilacion_antecedentes').length} en recopilación`,
+            icon: 'bi-bricks',
           },
           {
-            title: 'Alertas Críticas',
-            value: String(m.alertasCriticas),
+            title: 'Documentos Rechazados',
+            value: String(docsRechazados),
             subtitle: 'Requieren atención',
-            trend: '2 documentos por vencer hoy',
-            icon: METRIC_ICONS.alertasCriticas,
+            trend: `${documentos.filter(d => d.estado_actual === 'pendiente_amarillo').length} pendientes`,
+            icon: 'bi-exclamation-triangle',
           },
         ];
-        return {
-          metrics,
-          barData: mapDashboardBarData(res.estadoCarpetas),
-          pieData: mapDashboardPieData(res.subsidiosActivos),
-          alerts: mapDashboardAlerts(res.alertas),
-        };
+
+        // ── Gráfico de barras: conteo de docs por estado semáforo ──
+        const conteoEstados: Record<string, number> = {};
+        for (const doc of documentos) {
+          const estado = doc.estado_actual as EstadoSemaforo;
+          const label = SEMAFORO_LABELS[estado] ?? estado;
+          conteoEstados[label] = (conteoEstados[label] ?? 0) + 1;
+        }
+        const barData: BarDataItem[] = Object.entries(conteoEstados).map(([name, value]) => {
+          const estadoKey = Object.entries(SEMAFORO_LABELS).find(([, v]) => v === name)?.[0] as EstadoSemaforo | undefined;
+          return {
+            name,
+            value,
+            fill: estadoKey ? SEMAFORO_FILLS[estadoKey] : 'var(--bs-secondary)',
+          };
+        });
+
+        // ── Gráfico circular: conteo de proyectos por tipo_subsidio ──
+        const conteoSubsidios: Record<string, number> = {};
+        for (const p of proyectos) {
+          const tipo = p.tipo_subsidio ?? 'Sin tipo';
+          conteoSubsidios[tipo] = (conteoSubsidios[tipo] ?? 0) + 1;
+        }
+        const pieData: PieDataItem[] = Object.entries(conteoSubsidios).map(([name, value], i) => ({
+          name,
+          value,
+          color: PIE_COLORS[i % PIE_COLORS.length],
+        }));
+
+        return { metrics, barData, pieData };
       })
     );
   }

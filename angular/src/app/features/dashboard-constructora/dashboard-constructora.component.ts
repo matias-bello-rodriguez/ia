@@ -1,10 +1,23 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { DashboardService, DashboardData } from '../../core/services/dashboard.service';
+import { ProyectosService } from '../../core/services/proyectos.service';
 import { DocumentosService } from '../../core/services/documentos.service';
-import { AuthService } from '../../core/services';
-import type { SemaforoProyecto } from '../../shared/models';
+import { AuthService } from '../../core/services/auth.service';
+import { forkJoin } from 'rxjs';
+import type { ProyectoConRelaciones, EstadoSemaforo } from '../../shared/models/database.types';
+
+/** Modelo de vista local para la tabla semáforo */
+interface SemaforoProyectoView {
+  proyectoId: string;
+  proyectoNombre: string;
+  totalCarpetas: number;
+  carpetasVerde: number;
+  carpetasAmarillo: number;
+  carpetasRojo: number;
+  avancePct: number;
+  alertaMonto: boolean;
+}
 
 @Component({
   selector: 'app-dashboard-constructora',
@@ -20,14 +33,14 @@ export class DashboardConstructoraComponent implements OnInit {
   carpetasCriticas = 0;
 
   // Semáforo resumen
-  proyectos: SemaforoProyecto[] = [];
+  proyectos: SemaforoProyectoView[] = [];
   loadingSemaforo = true;
 
   // Dashboard data
   loading = true;
 
   constructor(
-    private dashboardService: DashboardService,
+    private proyectosService: ProyectosService,
     private documentosService: DocumentosService,
     private auth: AuthService,
     private router: Router
@@ -39,15 +52,49 @@ export class DashboardConstructoraComponent implements OnInit {
 
   private loadSemaforo(): void {
     this.loadingSemaforo = true;
-    this.documentosService.getSemaforoProyectos().subscribe({
-      next: (list) => {
-        this.proyectos = list;
-        this.totalProyectos = list.length;
-        this.carpetasCompletas = list.reduce((s, p) => s + p.carpetasVerde, 0);
-        this.carpetasPorVencer = list.reduce((s, p) => s + p.carpetasAmarillo, 0);
-        this.carpetasCriticas = list.reduce((s, p) => s + p.carpetasRojo, 0);
-        this.loadingSemaforo = false;
-        this.loading = false;
+    this.proyectosService.getAllConRelaciones().subscribe({
+      next: (proyectos) => {
+        if (proyectos.length === 0) {
+          this.proyectos = [];
+          this.loadingSemaforo = false;
+          this.loading = false;
+          return;
+        }
+
+        // Cargar estadísticas de semáforo para cada proyecto
+        const stats$ = proyectos.map(p =>
+          this.documentosService.getEstadisticasSemaforo(p.id)
+        );
+
+        forkJoin(stats$).subscribe({
+          next: (allStats) => {
+            this.proyectos = proyectos.map((p, i) => {
+              const s = allStats[i];
+              const total = s.aprobado_verde + s.pendiente_amarillo + s.en_proceso_naranja + s.rechazado_rojo;
+              const pct = total > 0 ? Math.round((s.aprobado_verde / total) * 100) : 0;
+              return {
+                proyectoId: p.id,
+                proyectoNombre: p.codigo_proyecto ?? p.tipo_subsidio,
+                totalCarpetas: total,
+                carpetasVerde: s.aprobado_verde,
+                carpetasAmarillo: s.pendiente_amarillo + s.en_proceso_naranja,
+                carpetasRojo: s.rechazado_rojo,
+                avancePct: pct,
+                alertaMonto: false,
+              };
+            });
+            this.totalProyectos = proyectos.length;
+            this.carpetasCompletas = this.proyectos.reduce((s, p) => s + p.carpetasVerde, 0);
+            this.carpetasPorVencer = this.proyectos.reduce((s, p) => s + p.carpetasAmarillo, 0);
+            this.carpetasCriticas = this.proyectos.reduce((s, p) => s + p.carpetasRojo, 0);
+            this.loadingSemaforo = false;
+            this.loading = false;
+          },
+          error: () => {
+            this.loadingSemaforo = false;
+            this.loading = false;
+          },
+        });
       },
       error: () => {
         this.loadingSemaforo = false;

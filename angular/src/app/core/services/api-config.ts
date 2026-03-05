@@ -1,7 +1,5 @@
 /**
- * URL base del backend Django (API REST).
- * Usa la configuración de entorno para mayor flexibilidad.
+ * @deprecated — Este archivo ya no se usa.
+ * Toda la comunicación es directa via @supabase/supabase-js.
+ * Se conserva vacío para evitar errores de importación residuales.
  */
-import { environment } from '../../../environments/environment';
-
-export const API_BASE_URL = environment.apiBaseUrl;

@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { NotificacionesService } from '../../core/services';
-import type { Contact } from '../../shared/models';
+import { NotificacionesService } from '../../core/services/notificaciones.service';
+import type { HistorialConRelaciones } from '../../shared/models/database.types';
+import { SEMAFORO_LABELS, SEMAFORO_COLORS } from '../../shared/models/database.types';
 
 @Component({
   selector: 'app-notificaciones',
@@ -10,17 +11,19 @@ import type { Contact } from '../../shared/models';
   templateUrl: './notificaciones.component.html',
 })
 export class NotificacionesComponent implements OnInit {
-  contacts: Contact[] = [];
+  actividades: HistorialConRelaciones[] = [];
   selectedIndex = 0;
-  sentMessages = new Set<string>();
   loading = true;
+
+  readonly semaforoLabels = SEMAFORO_LABELS;
+  readonly semaforoColors = SEMAFORO_COLORS;
 
   constructor(private notificacionesService: NotificacionesService) {}
 
   ngOnInit(): void {
-    this.notificacionesService.getContactosPendientes().subscribe({
+    this.notificacionesService.getActividadReciente(50).subscribe({
       next: (list) => {
-        this.contacts = list;
+        this.actividades = list;
         this.loading = false;
       },
       error: () => {
@@ -29,23 +32,15 @@ export class NotificacionesComponent implements OnInit {
     });
   }
 
-  get selected(): Contact | null {
-    return this.contacts[this.selectedIndex] ?? null;
+  get selected(): HistorialConRelaciones | null {
+    return this.actividades[this.selectedIndex] ?? null;
   }
 
-  message(contact: Contact): string {
-    const docList = contact.missing.join(' y ');
-    const firstName = contact.name.split(' ')[0];
-    return `Hola ${firstName}, para no perder su subsidio de vivienda, necesitamos que nos envíe una foto de su ${docList} vigente lo antes posible. Puede responder a este mensaje con la foto o acercarse a nuestra oficina. Cualquier duda estamos para ayudarle.`;
+  estadoLabel(estado: string): string {
+    return (this.semaforoLabels as Record<string, string>)[estado] ?? estado;
   }
 
-  enviar(contact: Contact): void {
-    const id = contact.id;
-    if (id == null) return;
-    this.notificacionesService.marcarEnviado(id).subscribe({
-      next: () => {
-        this.sentMessages = new Set(this.sentMessages).add(id);
-      },
-    });
+  estadoColor(estado: string): string {
+    return (this.semaforoColors as Record<string, string>)[estado] ?? '#6c757d';
   }
 }

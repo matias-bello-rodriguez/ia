@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ConfiguracionService } from '../../core/services';
-import type { AiModule, DocumentRule, SubsidyRule } from '../../shared/models';
+import { ConfiguracionService } from '../../core/services/configuracion.service';
+import type { Empresa, Usuario } from '../../shared/models/database.types';
+import { TIPO_EMPRESA_LABELS } from '../../shared/models/database.types';
 
 @Component({
   selector: 'app-configuracion',
@@ -11,30 +12,25 @@ import type { AiModule, DocumentRule, SubsidyRule } from '../../shared/models';
   templateUrl: './configuracion.component.html',
 })
 export class ConfiguracionComponent implements OnInit {
-  subsidyRules: SubsidyRule[] = [];
-  documentRules: DocumentRule[] = [];
-  aiModules: AiModule[] = [];
+  empresas: Empresa[] = [];
+  usuarios: Usuario[] = [];
   editingRow: string | null = null;
   loading = true;
+
+  readonly tipoLabels = TIPO_EMPRESA_LABELS;
 
   constructor(private configuracionService: ConfiguracionService) {}
 
   ngOnInit(): void {
-    this.configuracionService.getReglasSubsidio().subscribe({
+    this.configuracionService.getEmpresas().subscribe({
       next: (list) => {
-        this.subsidyRules = list;
+        this.empresas = list;
       },
       error: () => {},
     });
-    this.configuracionService.getReglasDocumento().subscribe({
+    this.configuracionService.getUsuarios().subscribe({
       next: (list) => {
-        this.documentRules = list;
-      },
-      error: () => {},
-    });
-    this.configuracionService.getModulosIA().subscribe({
-      next: (list) => {
-        this.aiModules = list;
+        this.usuarios = list;
         this.loading = false;
       },
       error: () => {
@@ -49,15 +45,19 @@ export class ConfiguracionComponent implements OnInit {
 
   saveEdit(): void {
     if (this.editingRow == null) return;
-    const row = this.subsidyRules.find((r) => r.id === this.editingRow);
+    const row = this.empresas.find((r) => r.id === this.editingRow);
     if (!row) {
       this.editingRow = null;
       return;
     }
-    this.configuracionService.updateReglaSubsidio(this.editingRow, row).subscribe({
+    this.configuracionService.updateEmpresa(this.editingRow, {
+      razon_social: row.razon_social,
+      nombre_fantasia: row.nombre_fantasia,
+      nombre_representante_legal: row.nombre_representante_legal,
+    }).subscribe({
       next: (updated) => {
-        const i = this.subsidyRules.findIndex((r) => r.id === updated.id);
-        if (i >= 0) this.subsidyRules[i] = updated;
+        const i = this.empresas.findIndex((r) => r.id === updated.id);
+        if (i >= 0) this.empresas[i] = updated;
         this.editingRow = null;
       },
     });
