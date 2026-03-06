@@ -1,8 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ReportesService } from '../../core/services';
-import type { CarpetaFile, ReporteRow } from '../../shared/models';
+import { ReportesService, ReporteProyectoRow } from '../../core/services/reportes.service';
+import { DocumentosService } from '../../core/services/documentos.service';
+import type { Documento, EstadoSemaforo } from '../../shared/models/database.types';
+import { SEMAFORO_LABELS, ESTADO_PROYECTO_LABELS } from '../../shared/models/database.types';
 
 @Component({
   selector: 'app-reportes',
@@ -11,18 +13,19 @@ import type { CarpetaFile, ReporteRow } from '../../shared/models';
   templateUrl: './reportes.component.html',
 })
 export class ReportesComponent implements OnInit {
-  reporteGrid: ReporteRow[] = [];
-  carpetaFiles: CarpetaFile[] = [];
-  selectedCarpetaId: string | null = null;
+  reporteGrid: ReporteProyectoRow[] = [];
+  documentosProyecto: Documento[] = [];
+  selectedProyectoId: string | null = null;
   activeTab = 'report';
   reportGenerated = true;
   isGenerating = false;
   loadingReporte = true;
-  loadingCarpeta = false;
-  informePlagas: string | null = null;
-  seremiQuimicos = false;
+  loadingDocumentos = false;
 
-  constructor(private reportesService: ReportesService) {}
+  constructor(
+    private reportesService: ReportesService,
+    private documentosService: DocumentosService,
+  ) {}
 
   ngOnInit(): void {
     this.loadReporte();
@@ -31,11 +34,11 @@ export class ReportesComponent implements OnInit {
   loadReporte(): void {
     this.loadingReporte = true;
     this.reportesService.getReporteEjecutivo().subscribe({
-      next: (rows) => {
+      next: (rows: ReporteProyectoRow[]) => {
         this.reporteGrid = rows;
         this.loadingReporte = false;
-        if (rows.length > 0 && !this.selectedCarpetaId) {
-          this.selectedCarpetaId = rows[0].id;
+        if (rows.length > 0 && !this.selectedProyectoId) {
+          this.selectedProyectoId = rows[0].proyectoId;
         }
       },
       error: () => {
@@ -44,48 +47,38 @@ export class ReportesComponent implements OnInit {
     });
   }
 
-  selectCarpetaForFiles(id: string): void {
-    this.selectedCarpetaId = id;
-    this.loadCarpetaFiles();
+  selectProyectoForDocs(proyectoId: string): void {
+    this.selectedProyectoId = proyectoId;
+    this.loadDocumentosProyecto();
   }
 
-  loadCarpetaFiles(): void {
-    if (this.selectedCarpetaId == null) return;
-    this.loadingCarpeta = true;
-    this.reportesService.getCarpetaArchivos(this.selectedCarpetaId).subscribe({
-      next: (files) => {
-        this.carpetaFiles = files;
-        this.loadingCarpeta = false;
+  loadDocumentosProyecto(): void {
+    if (this.selectedProyectoId == null) return;
+    this.loadingDocumentos = true;
+    this.reportesService.getDocumentosProyecto(this.selectedProyectoId).subscribe({
+      next: (docs: Documento[]) => {
+        this.documentosProyecto = docs;
+        this.loadingDocumentos = false;
       },
       error: () => {
-        this.loadingCarpeta = false;
+        this.loadingDocumentos = false;
       },
     });
-  }
-
-  puedeAptoParaCobro(row: ReporteRow): boolean {
-    return !!(row.informeUniversidad && row.vistoBuenoITO && row.resolucion);
   }
 
   get listosCount(): number {
-    return this.reporteGrid.filter((r) => r.listoParaFacturar).length;
+    return this.reporteGrid.filter((r) => r.documentosAprobados === r.totalDocumentos && r.totalDocumentos > 0).length;
   }
 
-  marcarListoParaFacturar(row: ReporteRow): void {
-    const id = row.id;
-    if (!id) return;
-    this.reportesService.marcarListoParaFacturar(id).subscribe({
-      next: () => {
-        row.listoParaFacturar = true;
-      },
-    });
+  get totalDocs(): number {
+    return this.reporteGrid.reduce((sum, r) => sum + r.totalDocumentos, 0);
   }
 
   actualizarReporte(): void {
     this.isGenerating = true;
     this.reportGenerated = false;
     this.reportesService.getReporteEjecutivo().subscribe({
-      next: (rows) => {
+      next: (rows: ReporteProyectoRow[]) => {
         this.reporteGrid = rows;
         this.isGenerating = false;
         this.reportGenerated = true;
@@ -97,10 +90,14 @@ export class ReportesComponent implements OnInit {
     });
   }
 
+  semaforoLabel(estado: EstadoSemaforo): string {
+    return SEMAFORO_LABELS[estado] ?? estado;
+  }
+
   onTabChange(tab: string): void {
     this.activeTab = tab;
-    if (tab === 'carpeta' && this.selectedCarpetaId != null) {
-      this.loadCarpetaFiles();
+    if (tab === 'documentos' && this.selectedProyectoId != null) {
+      this.loadDocumentosProyecto();
     }
   }
 }

@@ -1,8 +1,7 @@
 <div class="d-flex flex-column gap-4">
   <ul class="nav nav-tabs">
     <li class="nav-item"><a class="nav-link" [class.active]="activeTab === 'report'" (click)="onTabChange('report')" href="javascript:void(0)"><i class="bi bi-file-text me-1"></i> Resumen Ejecutivo</a></li>
-    <li class="nav-item"><a class="nav-link" [class.active]="activeTab === 'carpeta'" (click)="onTabChange('carpeta')" href="javascript:void(0)"><i class="bi bi-folder2-open me-1"></i> Carpeta SERVIU</a></li>
-    <li class="nav-item"><a class="nav-link" [class.active]="activeTab === 'ficha'" (click)="onTabChange('ficha')" href="javascript:void(0)"><i class="bi bi-clipboard-check me-1"></i> Informes de Terceros</a></li>
+    <li class="nav-item"><a class="nav-link" [class.active]="activeTab === 'documentos'" (click)="onTabChange('documentos')" href="javascript:void(0)"><i class="bi bi-folder2-open me-1"></i> Documentos</a></li>
   </ul>
 
   @if (activeTab === 'report') {
@@ -19,7 +18,7 @@
             </div>
           </div>
           <div class="card-body">
-            <p class="small text-body-secondary mb-3">Vista técnica por beneficiario. Sin texto narrativo.</p>
+            <p class="small text-body-secondary mb-3">Vista técnica por proyecto. Sin texto narrativo.</p>
             @if (loadingReporte) {
               <div class="d-flex flex-column align-items-center justify-content-center gap-3 text-body-secondary" style="min-height: 200px;">
                 <div class="spinner-border text-primary"></div>
@@ -32,29 +31,25 @@
                   <thead class="table-light">
                     <tr>
                       <th>Beneficiario</th>
-                      <th>Estado Subsidio</th>
+                      <th>Tipo Subsidio</th>
                       <th class="text-end">Monto UF</th>
-                      <th class="text-center">Visto Bueno ITO</th>
-                      <th class="text-center">Check Seremi</th>
-                      <th class="text-center">Acción</th>
+                      <th>Estado Proyecto</th>
+                      <th class="text-center">Docs</th>
+                      <th class="text-center">Aprobados</th>
                     </tr>
                   </thead>
                   <tbody>
-                    @for (row of reporteGrid; track row.id) {
-                      <tr>
-                        <td class="fw-medium">{{ row.beneficiario }}</td>
-                        <td><span class="badge bg-secondary">{{ row.estadoSubsidio }}</span></td>
-                        <td class="text-end font-monospace">{{ row.montoUF }}</td>
-                        <td class="text-center"><i class="bi" [class.bi-check-circle-fill]="row.vistoBuenoITO" [class.text-success]="row.vistoBuenoITO" [class.bi-x-circle]="!row.vistoBuenoITO" [class.text-secondary]="!row.vistoBuenoITO"></i></td>
-                        <td class="text-center"><i class="bi" [class.bi-check-circle-fill]="row.checkSeremi" [class.text-success]="row.checkSeremi" [class.bi-x-circle]="!row.checkSeremi" [class.text-secondary]="!row.checkSeremi"></i></td>
+                    @for (row of reporteGrid; track row.proyectoId) {
+                      <tr [class.table-active]="selectedProyectoId === row.proyectoId" style="cursor: pointer;" (click)="selectProyectoForDocs(row.proyectoId)">
+                        <td class="fw-medium">{{ row.beneficiarioNombre }}<div class="small text-body-secondary font-monospace">{{ row.beneficiarioRut }}</div></td>
+                        <td><span class="badge bg-secondary">{{ row.tipoSubsidio }}</span></td>
+                        <td class="text-end font-monospace">{{ row.montoUf | number }}</td>
+                        <td><span class="badge bg-primary">{{ row.estadoProyectoLabel }}</span></td>
+                        <td class="text-center">{{ row.totalDocumentos }}</td>
                         <td class="text-center">
-                          @if (row.listoParaFacturar) {
-                            <span class="badge badge-enviada"><i class="bi bi-cash-stack me-1"></i> Listo para Facturar</span>
-                          } @else if (puedeAptoParaCobro(row)) {
-                            <button type="button" class="btn btn-primary-otic btn-auto-width" (click)="marcarListoParaFacturar(row)"><i class="bi bi-cash-stack me-1"></i> Apto para Cobro</button>
-                          } @else {
-                            <span class="small text-body-secondary">Falta informe / ITO / resolución</span>
-                          }
+                          <span class="fw-bold" [class.text-success]="row.documentosAprobados === row.totalDocumentos && row.totalDocumentos > 0" [class.text-warning]="row.documentosAprobados < row.totalDocumentos">
+                            {{ row.documentosAprobados }}/{{ row.totalDocumentos }}
+                          </span>
                         </td>
                       </tr>
                     }
@@ -75,101 +70,55 @@
         <div class="card mb-3">
           <div class="card-header"><h6 class="mb-0">Resumen</h6></div>
           <div class="card-body">
-            <div class="d-flex justify-content-between small mb-2"><span class="text-body-secondary">Registros</span><span class="fw-medium">{{ reporteGrid.length }}</span></div>
-            <div class="d-flex justify-content-between small mb-2"><span class="text-body-secondary">Con Visto Bueno ITO</span><span class="fw-medium">{{ reporteGrid.filter(r => r.vistoBuenoITO).length }}</span></div>
-            <div class="d-flex justify-content-between small mb-2"><span class="text-body-secondary">Check Seremi OK</span><span class="fw-medium">{{ reporteGrid.filter(r => r.checkSeremi).length }}</span></div>
-            <div class="d-flex justify-content-between small"><span class="text-body-secondary">Listos para Facturar</span><span class="fw-medium text-success">{{ listosCount }}</span></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header"><h6 class="mb-0">Completitud Carpeta</h6></div>
-          <div class="card-body text-center">
-            <div class="mb-2 fw-bold display-6">100%</div>
-            <span class="badge badge-enviada">Lista para SERVIU</span>
+            <div class="d-flex justify-content-between small mb-2"><span class="text-body-secondary">Total Proyectos</span><span class="fw-medium">{{ reporteGrid.length }}</span></div>
+            <div class="d-flex justify-content-between small mb-2"><span class="text-body-secondary">Total Documentos</span><span class="fw-medium">{{ reporteGrid | json | slice:0:0 }}{{ totalDocs }}</span></div>
+            <div class="d-flex justify-content-between small"><span class="text-body-secondary">Proyectos 100% Aprobados</span><span class="fw-medium text-success">{{ listosCount }}</span></div>
           </div>
         </div>
       </div>
     </div>
   }
 
-  @if (activeTab === 'carpeta') {
+  @if (activeTab === 'documentos') {
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div>
-          <h6 class="mb-0">Generador de Carpeta SERVIU</h6>
-          <small class="text-body-secondary">Archivos ordenados y renombrados según estándar oficial</small>
+          <h6 class="mb-0">Documentos del Proyecto</h6>
+          <small class="text-body-secondary">{{ selectedProyectoId ? 'Seleccione un proyecto en el Resumen Ejecutivo' : 'Documentos asociados' }}</small>
         </div>
-        <button type="button" class="btn btn-primary-otic btn-auto-width"><i class="bi bi-download me-2"></i> Descargar .ZIP</button>
       </div>
       <div class="card-body">
-        @if (loadingCarpeta) {
+        @if (loadingDocumentos) {
           <div class="d-flex flex-column align-items-center justify-content-center gap-3 text-body-secondary py-5">
             <div class="spinner-border text-primary"></div>
-            <span>Cargando archivos de carpeta...</span>
+            <span>Cargando documentos...</span>
+          </div>
+        } @else if (documentosProyecto.length === 0) {
+          <div class="text-center py-4 text-body-secondary small">
+            @if (selectedProyectoId) {
+              No hay documentos para este proyecto.
+            } @else {
+              Seleccione un proyecto en el Resumen Ejecutivo para ver sus documentos.
+            }
           </div>
         } @else {
-        <div class="d-flex flex-column gap-2">
-          @for (f of carpetaFiles; track f.name) {
-            <div class="d-flex align-items-center justify-content-between border rounded p-3">
-              <div class="d-flex align-items-center gap-3">
-                <span class="rounded bg-light px-2 py-1 small fw-bold">{{ f.folio === 0 ? 'IX' : 'F' + f.folio }}</span>
-                <div>
-                  <div class="fw-medium font-monospace small">{{ f.name }}</div>
-                  <div class="small text-body-secondary">{{ f.type }}</div>
+          <div class="d-flex flex-column gap-2">
+            @for (doc of documentosProyecto; track doc.id) {
+              <div class="d-flex align-items-center justify-content-between border rounded p-3">
+                <div class="d-flex align-items-center gap-3">
+                  <i class="bi bi-file-earmark-text text-body-secondary"></i>
+                  <div>
+                    <div class="fw-medium small">{{ doc.nombre_archivo }}</div>
+                    <div class="small text-body-secondary">{{ doc.tipo_documento }}</div>
+                  </div>
                 </div>
+                <span class="badge" [class.text-bg-success]="doc.estado_actual === 'aprobado_verde'" [class.text-bg-danger]="doc.estado_actual === 'rechazado_rojo'" [class.text-bg-warning]="doc.estado_actual === 'pendiente_amarillo'" [class.text-bg-info]="doc.estado_actual === 'en_proceso_naranja'">
+                  {{ semaforoLabel(doc.estado_actual) }}
+                </span>
               </div>
-              @if (f.status === 'generated') {
-                <span class="badge bg-secondary">Auto-generado</span>
-              } @else {
-                <i class="bi bi-check-circle-fill text-success"></i>
-              }
-            </div>
-          }
-        </div>
-        }
-      </div>
-    </div>
-  }
-
-  @if (activeTab === 'ficha') {
-    <div class="card">
-      <div class="card-header">
-        <h6 class="mb-0">Documentación técnica especializada</h6>
-        <small class="text-body-secondary">Informes de terceros (universidades, Seremi). Sin aprobación Seremi de Salud el ITO no dará Vamos y Pago.</small>
-      </div>
-      <div class="card-body">
-        <h6 class="mt-3">Informe Silófagos (Plagas)</h6>
-        <p class="small text-body-secondary">Informe de la Universidad del Bío-Bío o UdeC. Subir PDF del informe técnico.</p>
-        <div class="border border-2 border-dashed rounded bg-light p-4 text-center">
-          @if (informePlagas) {
-            <i class="bi bi-check-circle-fill text-success me-2"></i><span class="font-monospace">{{ informePlagas }}</span>
-          } @else {
-            <i class="bi bi-file-pdf text-body-secondary me-2"></i><span class="text-body-secondary">Clic para subir informe UBB / UdeC</span>
-          }
-        </div>
-
-        <hr>
-
-        <h6>Validación de químicos</h6>
-        <p class="small text-body-secondary">Aprobación Seremi de Salud. Obligatorio para que el ITO (Inspector) otorgue Vamos y Pago.</p>
-        <div class="form-check form-switch border rounded p-3">
-          <input class="form-check-input" type="checkbox" id="seremi" [(ngModel)]="seremiQuimicos">
-          <label class="form-check-label fw-medium" for="seremi">Aprobado por Seremi de Salud</label>
-          @if (seremiQuimicos) {
-            <i class="bi bi-check-circle-fill text-success ms-2"></i>
-          } @else {
-            <i class="bi bi-x-circle text-body-secondary ms-2"></i>
-          }
-        </div>
-        @if (!seremiQuimicos) {
-          <div class="alert alert-danger small mt-2">
-            <i class="bi bi-exclamation-triangle me-2"></i><strong>Sin este documento</strong> el sistema avisa: el ITO no dará el "Vamos y Pago". Subir certificado de aprobación Seremi de Salud.
+            }
           </div>
         }
-
-        <h6 class="mt-4">Otros certificados universitarios</h6>
-        <p class="small text-body-secondary">Espacio para otros informes técnicos (estructuras, suelos, etc.).</p>
-        <div class="border border-dashed rounded bg-light p-4 text-center small text-body-secondary">Arrastrar o subir PDF</div>
       </div>
     </div>
   }

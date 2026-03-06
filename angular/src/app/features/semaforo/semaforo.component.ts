@@ -1,12 +1,24 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ProyectosService } from '../../core/services/proyectos.service';
 import { DocumentosService } from '../../core/services/documentos.service';
 import type {
-  SemaforoProyecto,
-  SemaforoCarpetaDetalle,
-  DocumentoDetalle,
-  Semaforo,
-} from '../../shared/models';
+  ProyectoConRelaciones,
+  Documento,
+  EstadoSemaforo,
+} from '../../shared/models/database.types';
+import { SEMAFORO_LABELS, SEMAFORO_COLORS } from '../../shared/models/database.types';
+
+/** Vista resumida de un proyecto con conteo de semáforos */
+interface SemaforoProyectoView {
+  proyecto: ProyectoConRelaciones;
+  totalDocumentos: number;
+  docsVerde: number;
+  docsAmarillo: number;
+  docsNaranja: number;
+  docsRojo: number;
+  avancePct: number;
+}
 
 @Component({
   selector: 'app-semaforo',
@@ -15,16 +27,19 @@ import type {
   templateUrl: './semaforo.component.html',
 })
 export class SemaforoComponent implements OnInit {
-  proyectos: SemaforoProyecto[] = [];
+  proyectos: SemaforoProyectoView[] = [];
   loading = true;
   errorMsg = '';
 
   // Drill-down
-  selectedProyecto: SemaforoProyecto | null = null;
-  carpetaDetalle: SemaforoCarpetaDetalle | null = null;
-  loadingCarpeta = false;
+  selectedProyecto: SemaforoProyectoView | null = null;
+  documentosDetalle: Documento[] = [];
+  loadingDocumentos = false;
 
-  constructor(private documentosService: DocumentosService) {}
+  constructor(
+    private proyectosService: ProyectosService,
+    private documentosService: DocumentosService,
+  ) {}
 
   ngOnInit(): void {
     this.loadProyectos();
@@ -33,9 +48,36 @@ export class SemaforoComponent implements OnInit {
   loadProyectos(): void {
     this.loading = true;
     this.errorMsg = '';
-    this.documentosService.getSemaforoProyectos().subscribe({
-      next: (list) => {
-        this.proyectos = list;
+    this.proyectosService.getAllConRelaciones().subscribe({
+      next: (proyectos: ProyectoConRelaciones[]) => {
+        // Para cada proyecto, cargar estadísticas de documentos
+        const views: SemaforoProyectoView[] = proyectos.map(p => ({
+          proyecto: p,
+          totalDocumentos: 0,
+          docsVerde: 0,
+          docsAmarillo: 0,
+          docsNaranja: 0,
+          docsRojo: 0,
+          avancePct: 0,
+        }));
+
+        // Cargar estadísticas de documentos para todos los proyectos
+        for (const view of views) {
+          this.documentosService.getEstadisticasSemaforo(view.proyecto.id).subscribe({
+            next: (stats) => {
+              view.docsVerde = stats.aprobado_verde;
+              view.docsAmarillo = stats.pendiente_amarillo;
+              view.docsNaranja = stats.en_proceso_naranja;
+              view.docsRojo = stats.rechazado_rojo;
+              view.totalDocumentos = view.docsVerde + view.docsAmarillo + view.docsNaranja + view.docsRojo;
+              view.avancePct = view.totalDocumentos > 0
+                ? Math.round((view.docsVerde / view.totalDocumentos) * 100)
+                : 0;
+            },
+          });
+        }
+
+        this.proyectos = views;
         this.loading = false;
       },
       error: () => {
@@ -45,47 +87,46 @@ export class SemaforoComponent implements OnInit {
     });
   }
 
-  selectProyecto(p: SemaforoProyecto): void {
+  selectProyecto(p: SemaforoProyectoView): void {
     this.selectedProyecto = p;
-    this.carpetaDetalle = null;
-  }
-
-  backToList(): void {
-    this.selectedProyecto = null;
-    this.carpetaDetalle = null;
-  }
-
-  loadCarpeta(carpetaId: string): void {
-    this.loadingCarpeta = true;
-    this.documentosService.getSemaforoCarpeta(carpetaId).subscribe({
-      next: (det) => {
-        this.carpetaDetalle = det;
-        this.loadingCarpeta = false;
+    this.documentosDetalle = [];
+    this.loadingDocumentos = true;
+    this.documentosService.getByProyecto(p.proyecto.id).subscribe({
+      next: (docs: Documento[]) => {
+        this.documentosDetalle = docs;
+        this.loadingDocumentos = false;
       },
       error: () => {
-        this.loadingCarpeta = false;
+        this.loadingDocumentos = false;
       },
     });
   }
 
-  closeCarpetaDetalle(): void {
-    this.carpetaDetalle = null;
+  backToList(): void {
+    this.selectedProyecto = null;
+    this.documentosDetalle = [];
   }
 
   // ── Helpers de UI ─────────────────────────────────────────
 
-  semaforoBg(s: Semaforo | string): string {
-    if (s === 'verde') return 'text-bg-success';
-    if (s === 'amarillo') return 'text-bg-warning';
-    if (s === 'rojo') return 'text-bg-danger';
+  semaforoBg(estado: EstadoSemaforo | string): string {
+    if (estado === 'aprobado_verde') return 'text-bg-success';
+    if (estado === 'pendiente_amarillo') return 'text-bg-warning';
+    if (estado === 'en_proceso_naranja') return 'text-bg-info';
+    if (estado === 'rechazado_rojo') return 'text-bg-danger';
     return 'text-bg-secondary';
   }
 
-  semaforoIcon(s: Semaforo | string): string {
-    if (s === 'verde') return 'bi-check-circle-fill';
-    if (s === 'amarillo') return 'bi-exclamation-triangle-fill';
-    if (s === 'rojo') return 'bi-x-circle-fill';
+  semaforoIcon(estado: EstadoSemaforo | string): string {
+    if (estado === 'aprobado_verde') return 'bi-check-circle-fill';
+    if (estado === 'pendiente_amarillo') return 'bi-exclamation-triangle-fill';
+    if (estado === 'en_proceso_naranja') return 'bi-hourglass-split';
+    if (estado === 'rechazado_rojo') return 'bi-x-circle-fill';
     return 'bi-question-circle';
+  }
+
+  semaforoLabel(estado: EstadoSemaforo): string {
+    return SEMAFORO_LABELS[estado] ?? estado;
   }
 
   avanceBarClass(pct: number): string {
@@ -95,28 +136,16 @@ export class SemaforoComponent implements OnInit {
     return 'bg-danger';
   }
 
-  get totalCarpetas(): number {
-    return this.proyectos.reduce((s, p) => s + p.totalCarpetas, 0);
+  get totalDocumentos(): number {
+    return this.proyectos.reduce((s, p) => s + p.totalDocumentos, 0);
   }
   get totalVerde(): number {
-    return this.proyectos.reduce((s, p) => s + p.carpetasVerde, 0);
+    return this.proyectos.reduce((s, p) => s + p.docsVerde, 0);
   }
   get totalAmarillo(): number {
-    return this.proyectos.reduce((s, p) => s + p.carpetasAmarillo, 0);
+    return this.proyectos.reduce((s, p) => s + p.docsAmarillo, 0);
   }
   get totalRojo(): number {
-    return this.proyectos.reduce((s, p) => s + p.carpetasRojo, 0);
-  }
-  get totalAlertaMonto(): number {
-    return this.proyectos.filter((p) => p.alertaMonto).length;
-  }
-
-  docEstadoLabel(estado: string): string {
-    switch (estado) {
-      case 'aprobado': return 'Aprobado';
-      case 'rechazado': return 'Rechazado';
-      case 'pendiente': return 'Pendiente';
-      default: return estado;
-    }
+    return this.proyectos.reduce((s, p) => s + p.docsRojo, 0);
   }
 }

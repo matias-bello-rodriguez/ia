@@ -3,8 +3,8 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { DocumentosService } from '../../core/services/documentos.service';
-import { API_BASE_URL } from '../../core/services/api-config';
-import type { DocumentoDetalle, ExtractedField } from '../../shared/models';
+import type { Documento, EstadoSemaforo } from '../../shared/models/database.types';
+import { SEMAFORO_LABELS, SEMAFORO_COLORS } from '../../shared/models/database.types';
 
 @Component({
   selector: 'app-document-viewer',
@@ -13,7 +13,7 @@ import type { DocumentoDetalle, ExtractedField } from '../../shared/models';
   templateUrl: './document-viewer.component.html',
 })
 export class DocumentViewerComponent implements OnInit {
-  documento: DocumentoDetalle | null = null;
+  documento: Documento | null = null;
   loading = true;
   errorMsg = '';
   pdfUrl: SafeResourceUrl | null = null;
@@ -31,13 +31,11 @@ export class DocumentViewerComponent implements OnInit {
       this.loading = false;
       return;
     }
-    this.documentosService.getDocumento(id).subscribe({
+    this.documentosService.getById(id).subscribe({
       next: (doc) => {
         this.documento = doc;
-        // Construir URL del PDF para el iframe
-        this.pdfUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
-          `${API_BASE_URL}/documentos/${doc.id}/archivo/`
-        );
+        // La URL del PDF viene directamente de ruta_almacenamiento (Supabase Storage)
+        this.pdfUrl = this.sanitizer.bypassSecurityTrustResourceUrl(doc.ruta_almacenamiento);
         this.loading = false;
       },
       error: () => {
@@ -49,36 +47,19 @@ export class DocumentViewerComponent implements OnInit {
 
   // ── Helpers ───────────────────────────────────────────────
 
-  semaforoBadge(s?: string): string {
-    if (s === 'verde') return 'text-bg-success';
-    if (s === 'amarillo') return 'text-bg-warning';
-    if (s === 'rojo') return 'text-bg-danger';
+  semaforoBadge(estado?: EstadoSemaforo): string {
+    if (estado === 'aprobado_verde') return 'text-bg-success';
+    if (estado === 'pendiente_amarillo') return 'text-bg-warning';
+    if (estado === 'en_proceso_naranja') return 'text-bg-info';
+    if (estado === 'rechazado_rojo') return 'text-bg-danger';
     return 'text-bg-secondary';
   }
 
-  semaforoLabel(s?: string): string {
-    if (s === 'verde') return 'Vigente';
-    if (s === 'amarillo') return 'Por Vencer';
-    if (s === 'rojo') return 'Vencido';
-    return '—';
+  semaforoLabel(estado?: EstadoSemaforo): string {
+    return estado ? SEMAFORO_LABELS[estado] : '—';
   }
 
-  estadoBadge(e?: string): string {
-    if (e === 'aprobado') return 'text-bg-success';
-    if (e === 'rechazado') return 'text-bg-danger';
-    return 'text-bg-secondary';
-  }
-
-  scoreColor(score?: number): string {
-    if (!score) return 'text-secondary';
-    if (score >= 0.8) return 'text-success';
-    if (score >= 0.5) return 'text-warning';
-    return 'text-danger';
-  }
-
-  statusLabel(s: ExtractedField['status']): string {
-    if (s === 'approved') return 'Aprobado';
-    if (s === 'rejected') return 'Rechazado';
-    return 'Alerta';
+  semaforoColor(estado?: EstadoSemaforo): string {
+    return estado ? SEMAFORO_COLORS[estado] : '#6c757d';
   }
 }

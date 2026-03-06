@@ -1,76 +1,103 @@
 import { Injectable } from '@angular/core';
 import { from, map, Observable } from 'rxjs';
-import type { Project } from '../../shared/models';
-import { type ApiProyecto, mapProyecto, mapProyectos, mapProjectToApi } from '../../shared/mappers';
 import { getSupabaseClient } from './supabase-client';
-
-// Tabla creada por Django para el modelo Proyecto
-const TABLE = 'egis_app_proyecto';
+import type {
+  Proyecto,
+  ProyectoInsert,
+  ProyectoConRelaciones,
+  EstadoProyecto,
+} from '../../shared/models/database.types';
 
 @Injectable({ providedIn: 'root' })
 export class ProyectosService {
   private supabase = getSupabaseClient();
 
-  getAll(): Observable<Project[]> {
+  /** Obtener todos los proyectos (RLS filtra por empresa) */
+  getAll(): Observable<Proyecto[]> {
     return from(
       this.supabase
-        .from(TABLE)
+        .from('proyectos')
         .select('*')
-        .order('id', { ascending: true })
+        .order('fecha_creacion', { ascending: false })
     ).pipe(
       map(({ data, error }) => {
         if (error) throw error;
-        const rows = (data ?? []) as ApiProyecto[];
-        return mapProyectos(rows);
+        return (data ?? []) as Proyecto[];
       })
     );
   }
 
-  getById(id: string): Observable<Project> {
+  /** Obtener proyectos con relaciones expandidas (beneficiario, egis, constructora) */
+  getAllConRelaciones(): Observable<ProyectoConRelaciones[]> {
     return from(
       this.supabase
-        .from(TABLE)
-        .select('*')
+        .from('proyectos')
+        .select('*, beneficiario:beneficiarios(*), egis:empresas!egis_id(*), constructora:empresas!constructora_id(*)')
+        .order('fecha_creacion', { ascending: false })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw error;
+        return (data ?? []) as ProyectoConRelaciones[];
+      })
+    );
+  }
+
+  /** Obtener un proyecto por ID con todas sus relaciones */
+  getById(id: string): Observable<ProyectoConRelaciones> {
+    return from(
+      this.supabase
+        .from('proyectos')
+        .select('*, beneficiario:beneficiarios(*), egis:empresas!egis_id(*), constructora:empresas!constructora_id(*)')
         .eq('id', id)
         .single()
     ).pipe(
       map(({ data, error }) => {
         if (error || !data) throw error ?? new Error('Proyecto no encontrado');
-        return mapProyecto(data);
+        return data as ProyectoConRelaciones;
       })
     );
   }
 
-  create(project: Partial<Project>): Observable<Project> {
-    const payload = mapProjectToApi(project);
+  /** Crear nuevo proyecto */
+  create(proyecto: ProyectoInsert): Observable<Proyecto> {
     return from(
       this.supabase
-        .from(TABLE)
-        .insert(payload)
+        .from('proyectos')
+        .insert(proyecto)
         .select('*')
         .single()
     ).pipe(
       map(({ data, error }) => {
         if (error || !data) throw error ?? new Error('Error al crear proyecto');
-        return mapProyecto(data);
+        return data as Proyecto;
       })
     );
   }
 
-  update(id: string, project: Partial<Project>): Observable<Project> {
-    const payload = mapProjectToApi(project);
+  /** Actualizar un proyecto existente */
+  update(id: string, cambios: Partial<Proyecto>): Observable<Proyecto> {
     return from(
       this.supabase
-        .from(TABLE)
-        .update(payload)
+        .from('proyectos')
+        .update(cambios)
         .eq('id', id)
         .select('*')
         .single()
     ).pipe(
       map(({ data, error }) => {
         if (error || !data) throw error ?? new Error('Error al actualizar proyecto');
-        return mapProyecto(data);
+        return data as Proyecto;
       })
     );
+  }
+
+  /** Cambiar el estado de un proyecto */
+  cambiarEstado(id: string, nuevoEstado: EstadoProyecto): Observable<Proyecto> {
+    return this.update(id, { estado_actual: nuevoEstado });
+  }
+
+  /** Asignar constructora a un proyecto */
+  asignarConstructora(proyectoId: string, constructoraId: string): Observable<Proyecto> {
+    return this.update(proyectoId, { constructora_id: constructoraId });
   }
 }

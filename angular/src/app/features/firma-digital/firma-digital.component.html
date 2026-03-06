@@ -4,24 +4,24 @@
     <i class="bi bi-pen-fill text-primary fs-4"></i>
     <div>
       <h5 class="mb-0">Firma Digital HITO</h5>
-      <small class="text-body-secondary">Firma electrónica para cierre de carpeta por usuario HITO</small>
+      <small class="text-body-secondary">Firma electrónica para cierre de proyecto por usuario HITO</small>
     </div>
   </div>
 
-  <!-- ═══ Búsqueda de Carpeta ═══ -->
+  <!-- ═══ Búsqueda de Proyecto ═══ -->
   <div class="card">
     <div class="card-header">
-      <h6 class="mb-0"><i class="bi bi-search me-2"></i>Seleccionar Carpeta</h6>
+      <h6 class="mb-0"><i class="bi bi-search me-2"></i>Seleccionar Proyecto</h6>
     </div>
     <div class="card-body">
       <div class="row g-3 align-items-end">
         <div class="col-auto">
-          <label class="form-label small fw-medium">ID de Carpeta</label>
-          <input type="text" class="form-control" placeholder="UUID de carpeta" [(ngModel)]="carpetaIdInput" style="width: 300px;">
+          <label class="form-label small fw-medium">ID de Proyecto</label>
+          <input type="text" class="form-control" placeholder="UUID del proyecto" [(ngModel)]="proyectoIdInput" style="width: 300px;">
         </div>
         <div class="col-auto">
-          <button class="btn btn-primary" [disabled]="!carpetaIdInput || loadingCarpeta" (click)="buscarCarpeta()">
-            @if (loadingCarpeta) {
+          <button class="btn btn-primary" [disabled]="!proyectoIdInput || loadingProyecto" (click)="buscarProyecto()">
+            @if (loadingProyecto) {
               <span class="spinner-border spinner-border-sm me-1"></span>
             } @else {
               <i class="bi bi-folder2-open me-1"></i>
@@ -30,66 +30,57 @@
           </button>
         </div>
       </div>
-      @if (carpetaError) {
-        <div class="alert alert-danger mt-3 mb-0 small">{{ carpetaError }}</div>
+      @if (proyectoError) {
+        <div class="alert alert-danger mt-3 mb-0 small">{{ proyectoError }}</div>
       }
     </div>
   </div>
 
-  @if (carpeta) {
+  @if (proyecto) {
 
-    <!-- ═══ Detalle de Carpeta ═══ -->
+    <!-- ═══ Detalle de Proyecto ═══ -->
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <h6 class="mb-0"><i class="bi bi-folder-check me-2"></i>Carpeta #{{ carpeta.carpetaId }}</h6>
-        <span class="badge text-bg-primary">{{ carpeta.estado }}</span>
+        <h6 class="mb-0"><i class="bi bi-folder-check me-2"></i>Proyecto {{ proyecto.codigo_proyecto ?? proyecto.tipo_subsidio }}</h6>
+        <span class="badge text-bg-primary">{{ proyecto.estado_actual }}</span>
       </div>
       <div class="card-body">
         <div class="row g-3 mb-3">
-          <div class="col-sm-6">
+          <div class="col-sm-4">
             <span class="text-body-secondary small d-block">Beneficiario</span>
-            <span class="fw-medium">{{ carpeta.beneficiario }}</span>
+            <span class="fw-medium">{{ proyecto.beneficiario?.nombre_completo ?? '—' }}</span>
           </div>
-          <div class="col-sm-3">
-            <span class="text-body-secondary small d-block">Monto Contrato</span>
-            <span class="fw-medium">{{ carpeta.montoContratoUF || '—' }} UF</span>
+          <div class="col-sm-4">
+            <span class="text-body-secondary small d-block">Tipo Subsidio</span>
+            <span class="fw-medium">{{ proyecto.tipo_subsidio }}</span>
           </div>
-          <div class="col-sm-3">
-            <span class="text-body-secondary small d-block">Monto Resolución</span>
-            <span class="fw-medium">{{ carpeta.montoResolucionUF || '—' }} UF</span>
+          <div class="col-sm-4">
+            <span class="text-body-secondary small d-block">Monto UF</span>
+            <span class="fw-medium">{{ proyecto.monto_uf | number }} UF</span>
           </div>
         </div>
 
-        @if (carpeta.alertaMontoInconsistente) {
-          <div class="alert alert-warning small d-flex align-items-center gap-2 mb-3">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-            <span>Inconsistencia de montos detectada entre Contrato y Resolución Exenta.</span>
-          </div>
-        }
-
         <!-- Documentos -->
-        <h6 class="small fw-semibold text-body-secondary mb-2">Documentos ({{ carpeta.documentos.length }})</h6>
+        <h6 class="small fw-semibold text-body-secondary mb-2">Documentos ({{ documentos.length }})</h6>
         <div class="d-flex flex-column gap-2">
-          @for (doc of carpeta.documentos; track doc.id) {
+          @for (doc of documentos; track doc.id) {
             <div class="border rounded p-2 d-flex align-items-center justify-content-between">
               <div class="d-flex align-items-center gap-2">
                 <i class="bi bi-file-earmark-text text-body-secondary"></i>
                 <div>
-                  <span class="small fw-medium">{{ doc.nombreArchivo }}</span>
-                  <span class="text-body-secondary d-block" style="font-size: 0.7rem;">{{ doc.tipoDocumento }}</span>
+                  <span class="small fw-medium">{{ doc.nombre_archivo }}</span>
+                  <span class="text-body-secondary d-block" style="font-size: 0.7rem;">{{ doc.tipo_documento }}</span>
                 </div>
               </div>
               <div class="d-flex gap-2 align-items-center">
-                @if (doc.iaProcesado) {
-                  <span class="badge text-bg-info"><i class="bi bi-robot"></i></span>
-                } @else {
-                  <span class="badge text-bg-secondary">Sin IA</span>
-                }
-                <span class="badge" [class.text-bg-success]="doc.estado === 'aprobado'" [class.text-bg-danger]="doc.estado === 'rechazado'" [class.text-bg-secondary]="doc.estado !== 'aprobado' && doc.estado !== 'rechazado'">
-                  {{ doc.estado }}
+                <span class="badge" [style.background]="estadoColor(doc.estado_actual)" style="color: white;">
+                  {{ estadoLabel(doc.estado_actual) }}
                 </span>
               </div>
             </div>
+          }
+          @if (documentos.length === 0) {
+            <div class="text-center py-3 text-body-secondary small">No hay documentos cargados</div>
           }
         </div>
       </div>
@@ -126,7 +117,7 @@
     <!-- ═══ Formulario de Firma ═══ -->
     <div class="card">
       <div class="card-header">
-        <h6 class="mb-0"><i class="bi bi-pen me-2"></i>Firmar Carpeta</h6>
+        <h6 class="mb-0"><i class="bi bi-pen me-2"></i>Firmar Proyecto</h6>
       </div>
       <div class="card-body">
         @if (firmaResult) {
@@ -174,7 +165,7 @@
             @if (signing) {
               <span class="spinner-border spinner-border-sm me-2"></span>Firmando...
             } @else {
-              <i class="bi bi-pen me-2"></i>Firmar Carpeta HITO
+              <i class="bi bi-pen me-2"></i>Firmar Proyecto HITO
             }
           </button>
 

@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
-import { AuthService } from '../../core/services';
+import { AuthService } from '../services/auth.service';
 
 const MODULE_TITLES: Record<string, { title: string; description: string }> = {
   'dashboard-constructora': { title: 'Dashboard Constructora', description: 'Panel de control de obra y avance de proyectos' },

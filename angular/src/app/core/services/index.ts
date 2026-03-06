@@ -1,10 +1,11 @@
-export { API_BASE_URL } from './api-config';
-export { AuthService, type User, type UserRole, type LoginRequest } from './auth.service';
+export { AuthService, type SesionActiva } from './auth.service';
+export type { RolUsuario, TipoEmpresa } from '../../shared/models/database.types';
 export { AlertService } from './alert.service';
 export { DashboardService, type DashboardData } from './dashboard.service';
 export { ProyectosService } from './proyectos.service';
 export { BeneficiariosService, type BeneficiariosQuery } from './beneficiarios.service';
-export { DocumentosService, type VigenciaFilter } from './documentos.service';
+export { DocumentosService } from './documentos.service';
 export { ReportesService } from './reportes.service';
 export { NotificacionesService } from './notificaciones.service';
 export { ConfiguracionService } from './configuracion.service';
+export { getSupabaseClient } from './supabase-client';

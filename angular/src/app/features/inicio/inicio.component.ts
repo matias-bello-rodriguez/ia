@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { AuthService, UserRole } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-inicio',
@@ -10,14 +9,10 @@ import { AuthService, UserRole } from '../../core/services/auth.service';
   templateUrl: './inicio.component.html',
 })
 export class InicioComponent {
-  constructor(
-    private router: Router,
-    private auth: AuthService
-  ) {}
+  constructor(private router: Router) {}
 
-
-  selectProfile(role: UserRole): void {
-    this.auth.selectRole(role);
+  /** Navegar directamente al login (el rol se determina desde la tabla usuarios) */
+  irAlLogin(): void {
     this.router.navigate(['/login']);
   }
 }

@@ -1,8 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ProyectosService, BeneficiariosService } from '../../core/services';
-import type { Beneficiary, Project } from '../../shared/models';
+import { ProyectosService } from '../../core/services/proyectos.service';
+import { BeneficiariosService } from '../../core/services/beneficiarios.service';
+import type { Proyecto, Beneficiario } from '../../shared/models/database.types';
+import { ESTADO_PROYECTO_LABELS } from '../../shared/models/database.types';
 
 @Component({
   selector: 'app-comites',
@@ -11,12 +13,14 @@ import type { Beneficiary, Project } from '../../shared/models';
   templateUrl: './comites.component.html',
 })
 export class ComitesComponent implements OnInit {
-  projects: Project[] = [];
-  beneficiaries: Beneficiary[] = [];
+  projects: Proyecto[] = [];
+  beneficiaries: Beneficiario[] = [];
   search = '';
   activeTab = 'projects';
   loadingProjects = true;
   loadingBeneficiaries = false;
+
+  readonly estadoLabels = ESTADO_PROYECTO_LABELS;
 
   constructor(
     private proyectosService: ProyectosService,
@@ -49,18 +53,13 @@ export class ComitesComponent implements OnInit {
     });
   }
 
-  get filteredBeneficiaries(): Beneficiary[] {
+  get filteredBeneficiaries(): Beneficiario[] {
     const s = this.search.toLowerCase();
     return this.beneficiaries.filter(
       (b) =>
-        b.name.toLowerCase().includes(s) ||
+        b.nombre_completo.toLowerCase().includes(s) ||
         b.rut.includes(this.search) ||
-        b.committee.toLowerCase().includes(s)
+        (b.comuna ?? '').toLowerCase().includes(s)
     );
-  }
-
-  /** Expone parseInt para usar en la plantilla (ej. "25 UF" → 25). */
-  toNumber(s: string): number {
-    return parseInt(s, 10) || 0;
   }
 }

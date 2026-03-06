@@ -1,93 +1,102 @@
 import { Injectable } from '@angular/core';
 import { from, map, Observable } from 'rxjs';
-import type { Beneficiary } from '../../shared/models';
-import {
-  type ApiBeneficiario,
-  mapBeneficiario,
-  mapBeneficiarios,
-  mapBeneficiarioToApi,
-} from '../../shared/mappers';
 import { getSupabaseClient } from './supabase-client';
+import type { Beneficiario, BeneficiarioInsert } from '../../shared/models/database.types';
 
 export interface BeneficiariosQuery {
   proyectoId?: string;
   q?: string;
+  comuna?: string;
 }
-
-// Tabla creada por Django para el modelo Beneficiario
-const TABLE = 'egis_app_beneficiario';
 
 @Injectable({ providedIn: 'root' })
 export class BeneficiariosService {
   private supabase = getSupabaseClient();
 
-  getAll(query?: BeneficiariosQuery): Observable<Beneficiary[]> {
+  /** Obtener todos los beneficiarios con filtros opcionales */
+  getAll(query?: BeneficiariosQuery): Observable<Beneficiario[]> {
     let q = this.supabase
-      .from(TABLE)
-      .select('*, proyecto:proyecto_id (nombre)')
-      .order('id', { ascending: true });
+      .from('beneficiarios')
+      .select('*')
+      .order('fecha_registro', { ascending: false });
 
-    if (query?.proyectoId) {
-      q = q.eq('proyecto_id', query.proyectoId);
-    }
     if (query?.q) {
       const term = `%${query.q}%`;
-      q = q.or(`nombre.ilike.${term},rut.ilike.${term}`);
+      q = q.or(`nombre_completo.ilike.${term},rut.ilike.${term}`);
+    }
+    if (query?.comuna) {
+      q = q.eq('comuna', query.comuna);
     }
 
     return from(q).pipe(
       map(({ data, error }) => {
         if (error) throw error;
-        const rows = (data ?? []) as ApiBeneficiario[];
-        return mapBeneficiarios(rows);
+        return (data ?? []) as Beneficiario[];
       })
     );
   }
 
-  getById(id: string): Observable<Beneficiary> {
+  /** Obtener un beneficiario por ID */
+  getById(id: string): Observable<Beneficiario> {
     return from(
       this.supabase
-        .from(TABLE)
-        .select('*, proyecto:proyecto_id (nombre)')
+        .from('beneficiarios')
+        .select('*')
         .eq('id', id)
         .single()
     ).pipe(
       map(({ data, error }) => {
         if (error || !data) throw error ?? new Error('Beneficiario no encontrado');
-        return mapBeneficiario(data);
+        return data as Beneficiario;
       })
     );
   }
 
-  create(beneficiary: Partial<Beneficiary>, proyectoId: string): Observable<Beneficiary> {
-    const payload = mapBeneficiarioToApi(beneficiary, proyectoId);
+  /** Buscar beneficiario por RUT */
+  getByRut(rut: string): Observable<Beneficiario | null> {
     return from(
       this.supabase
-        .from(TABLE)
-        .insert(payload)
-        .select('*, proyecto:proyecto_id (nombre)')
+        .from('beneficiarios')
+        .select('*')
+        .eq('rut', rut)
+        .maybeSingle()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw error;
+        return data as Beneficiario | null;
+      })
+    );
+  }
+
+  /** Crear nuevo beneficiario */
+  create(beneficiario: BeneficiarioInsert): Observable<Beneficiario> {
+    return from(
+      this.supabase
+        .from('beneficiarios')
+        .insert(beneficiario)
+        .select('*')
         .single()
     ).pipe(
       map(({ data, error }) => {
         if (error || !data) throw error ?? new Error('Error al crear beneficiario');
-        return mapBeneficiario(data);
+        return data as Beneficiario;
       })
     );
   }
 
-  update(id: string, beneficiary: Partial<Beneficiary>, proyectoId: string): Observable<Beneficiary> {
-    const payload = mapBeneficiarioToApi(beneficiary, proyectoId);
+  /** Actualizar un beneficiario existente */
+  update(id: string, cambios: Partial<Beneficiario>): Observable<Beneficiario> {
     return from(
       this.supabase
-        .from(TABLE)
-        .update(payload)
+        .from('beneficiarios')
+        .update(cambios)
         .eq('id', id)
-        .select('*, proyecto:proyecto_id (nombre)')
+        .select('*')
         .single()
     ).pipe(
       map(({ data, error }) => {
         if (error || !data) throw error ?? new Error('Error al actualizar beneficiario');
-        return mapBeneficiario(data);
+        return data as Beneficiario;
       })
     );
   }

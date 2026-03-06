@@ -1,52 +1,91 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { map, Observable } from 'rxjs';
-import { API_BASE_URL } from './api-config';
-import type { AiModule, DocumentRule, SubsidyRule } from '../../shared/models';
-import {
-  type ApiModuloIA,
-  type ApiReglaDocumento,
-  type ApiReglaSubsidio,
-  mapAiModules,
-  mapDocumentRules,
-  mapSubsidyRule,
-  mapSubsidyRules,
-  mapSubsidyRuleToApi,
-} from '../../shared/mappers';
+import { from, map, Observable } from 'rxjs';
+import { getSupabaseClient } from './supabase-client';
+import type { Empresa, EmpresaInsert, Usuario } from '../../shared/models/database.types';
 
+/**
+ * Servicio de configuración del sistema.
+ * Administra empresas y usuarios desde Supabase.
+ */
 @Injectable({ providedIn: 'root' })
 export class ConfiguracionService {
-  private readonly base = `${API_BASE_URL}/configuracion`;
+  private supabase = getSupabaseClient();
 
-  constructor(private http: HttpClient) {}
+  // ── Empresas ──────────────────────────────────────────────
 
-  getReglasSubsidio(): Observable<SubsidyRule[]> {
-    return this.http
-      .get<ApiReglaSubsidio[]>(`${this.base}/reglas-subsidio/`)
-      .pipe(map(mapSubsidyRules));
+  getEmpresas(): Observable<Empresa[]> {
+    return from(
+      this.supabase
+        .from('empresas')
+        .select('*')
+        .order('razon_social', { ascending: true })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw error;
+        return (data ?? []) as Empresa[];
+      })
+    );
   }
 
-  getReglaSubsidio(id: string): Observable<SubsidyRule> {
-    return this.http
-      .get<ApiReglaSubsidio>(`${this.base}/reglas-subsidio/${id}/`)
-      .pipe(map(mapSubsidyRule));
+  getEmpresa(id: string): Observable<Empresa> {
+    return from(
+      this.supabase
+        .from('empresas')
+        .select('*')
+        .eq('id', id)
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error || !data) throw error ?? new Error('Empresa no encontrada');
+        return data as Empresa;
+      })
+    );
   }
 
-  updateReglaSubsidio(id: string, rule: Partial<SubsidyRule>): Observable<SubsidyRule> {
-    return this.http
-      .patch<ApiReglaSubsidio>(`${this.base}/reglas-subsidio/${id}/`, mapSubsidyRuleToApi(rule))
-      .pipe(map(mapSubsidyRule));
+  updateEmpresa(id: string, cambios: Partial<Empresa>): Observable<Empresa> {
+    return from(
+      this.supabase
+        .from('empresas')
+        .update(cambios)
+        .eq('id', id)
+        .select('*')
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error || !data) throw error ?? new Error('Error al actualizar empresa');
+        return data as Empresa;
+      })
+    );
   }
 
-  getReglasDocumento(): Observable<DocumentRule[]> {
-    return this.http
-      .get<ApiReglaDocumento[]>(`${this.base}/reglas-documento/`)
-      .pipe(map(mapDocumentRules));
+  // ── Usuarios ──────────────────────────────────────────────
+
+  getUsuarios(): Observable<Usuario[]> {
+    return from(
+      this.supabase
+        .from('usuarios')
+        .select('*, empresa:empresas(razon_social, tipo)')
+        .order('nombre_completo', { ascending: true })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw error;
+        return (data ?? []) as Usuario[];
+      })
+    );
   }
 
-  getModulosIA(): Observable<AiModule[]> {
-    return this.http
-      .get<ApiModuloIA[]>(`${this.base}/modulos-ia/`)
-      .pipe(map(mapAiModules));
+  getUsuariosByEmpresa(empresaId: string): Observable<Usuario[]> {
+    return from(
+      this.supabase
+        .from('usuarios')
+        .select('*')
+        .eq('empresa_id', empresaId)
+        .order('nombre_completo', { ascending: true })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw error;
+        return (data ?? []) as Usuario[];
+      })
+    );
   }
 }
