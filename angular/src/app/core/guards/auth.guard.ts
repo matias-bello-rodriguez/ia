@@ -3,23 +3,15 @@ import { CanActivateFn, Router } from '@angular/router';
 import { SupabaseService } from '../../supabase.service';
 
 /**
- * Guard asíncrono que espera a que Supabase confirme el estado
- * de autenticación antes de decidir. Esto evita redirecciones
- * falsas cuando la sesión aún se está restaurando desde localStorage.
+ * Guard asíncrono que:
+ * 1. Espera a que Supabase termine de restaurar la sesión desde localStorage.
+ * 2. Consulta la sesión ACTUAL (no un valor cacheado).
+ * 3. Permite el paso si existe sesión, redirige a /login si no.
  */
 export const authGuard: CanActivateFn = async () => {
   const sb = inject(SupabaseService);
   const router = inject(Router);
 
-  // Espera el evento INITIAL_SESSION de Supabase
-  const session = await sb.waitForSession();
-
-  // Si waitForSession ya se resolvió en una ejecución anterior,
-  // getSession() devuelve el dato en caliente sin latencia.
-  if (!session) {
-    const fresh = await sb.getSession();
-    return fresh ? true : router.createUrlTree(['/login']);
-  }
-
-  return true;
+  const session = await sb.getSessionWhenReady();
+  return session ? true : router.createUrlTree(['/login']);
 };

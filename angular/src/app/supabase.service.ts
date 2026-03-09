@@ -34,26 +34,38 @@ const supabase: SupabaseClient = (() => {
 export class SupabaseService {
 
   /**
-   * Promesa que se resuelve cuando Supabase confirma el estado
-   * de autenticación inicial (sesión restaurada o ausente).
-   * El Guard espera esta promesa antes de tomar decisiones.
+   * Flag + promesa que garantizan que el Guard espere a que
+   * Supabase termine de restaurar la sesión desde localStorage
+   * antes de evaluar. Una vez inicializado, las llamadas
+   * posteriores pasan directo a getSession() sin espera.
    */
-  private _authReady: Promise<Session | null>;
+  private _initialized = false;
+  private _initPromise: Promise<void>;
 
   constructor() {
-    this._authReady = new Promise<Session | null>((resolve) => {
+    this._initPromise = new Promise<void>((resolve) => {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        (_event, session) => {
-          resolve(session);
-          subscription.unsubscribe();
+        () => {
+          this._initialized = true;
+          resolve();
+          // Defer unsubscribe para evitar referencia circular
+          // síncrona con la variable `subscription`.
+          setTimeout(() => subscription.unsubscribe());
         },
       );
     });
   }
 
-  /** Espera a que Supabase confirme el estado de auth y devuelve la sesión */
-  waitForSession(): Promise<Session | null> {
-    return this._authReady;
+  /**
+   * Espera la inicialización de Supabase Auth y luego devuelve
+   * la sesión **actual** (no un valor cacheado).
+   */
+  async getSessionWhenReady(): Promise<Session | null> {
+    if (!this._initialized) {
+      await this._initPromise;
+    }
+    const { data: { session } } = await supabase.auth.getSession();
+    return session;
   }
 
   /** Inicia sesión con correo y contraseña */

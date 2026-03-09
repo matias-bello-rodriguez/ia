@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
-import { AuthService } from '../services/auth.service';
+import { SupabaseService } from '../../supabase.service';
 
 const MODULE_TITLES: Record<string, { title: string; description: string }> = {
   dashboard: { title: 'Dashboard Global', description: 'Visión general del estado de la EGIS' },
@@ -29,7 +29,7 @@ export class LayoutComponent implements OnInit {
 
   constructor(
     private router: Router,
-    private auth: AuthService
+    private supabase: SupabaseService
   ) {}
 
   ngOnInit(): void {
@@ -53,10 +53,11 @@ export class LayoutComponent implements OnInit {
   }
 
   volverInicio(): void {
-    this.router.navigate(['/inicio']);
+    this.router.navigate(['/egis/dashboard']);
   }
 
-  logout(): void {
-    this.auth.logout();
+  async logout(): Promise<void> {
+    await this.supabase.signOut();
+    this.router.navigate(['/login']);
   }
 }
