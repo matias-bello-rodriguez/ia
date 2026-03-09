@@ -1,17 +1,58 @@
 <div class="auth-page">
   <div class="auth-card card shadow-sm">
     <div class="card-body p-4 p-md-5">
-      <!-- Header con branding -->
+
+      <!-- Header con branding unificado -->
       <div class="auth-header text-center mb-4">
         <div class="auth-logo mb-3">
-          <i class="bi bi-building"></i>
+          <i class="bi bi-shield-lock"></i>
         </div>
-        <h1 class="auth-title">EGIS Pro</h1>
-        <p class="auth-subtitle">Gestión Habitacional</p>
+        <h1 class="auth-title">Portal de Acceso</h1>
+        <p class="auth-subtitle">EGIS y Constructoras</p>
       </div>
 
-      <h2 class="auth-form-title text-center mt-2 mb-4">Iniciar Sesión</h2>
+      <!-- Tabs visuales -->
+      <ul class="nav nav-pills nav-justified mb-4">
+        <li class="nav-item">
+          <button
+            type="button"
+            class="nav-link"
+            [class.active]="activeTab() === 'egis'"
+            (click)="selectTab('egis')"
+          >
+            <i class="bi bi-building me-1"></i> EGIS
+          </button>
+        </li>
+        <li class="nav-item">
+          <button
+            type="button"
+            class="nav-link"
+            [class.active]="activeTab() === 'constructora'"
+            (click)="selectTab('constructora')"
+          >
+            <i class="bi bi-gear me-1"></i> Constructora
+          </button>
+        </li>
+      </ul>
 
+      <!-- Descripción contextual según tab -->
+      <p class="text-muted text-center small mb-4">
+        @if (activeTab() === 'egis') {
+          Accede con tu cuenta de <strong>EGIS</strong> para gestionar proyectos, visado y semáforo.
+        } @else {
+          Accede con tu cuenta de <strong>Constructora</strong> para revisar avances y documentación.
+        }
+      </p>
+
+      <!-- Errores inline -->
+      @if (errorMsg()) {
+        <div class="alert alert-danger d-flex align-items-center" role="alert">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          <span>{{ errorMsg() }}</span>
+        </div>
+      }
+
+      <!-- Formulario unificado -->
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form">
         <div class="mb-3">
           <label for="login-email" class="form-label">Correo electrónico</label>
@@ -60,12 +101,12 @@
         <button
           type="submit"
           class="btn btn-primary-otic btn-auto-width w-100 mb-3"
-          [disabled]="loading"
+          [disabled]="loading()"
         >
-          @if (loading) {
+          @if (loading()) {
             <span class="spinner-border spinner-border-sm me-2" role="status"></span>
           }
-          Entrar
+          Iniciar Sesión
         </button>
 
         <button
@@ -76,6 +117,12 @@
           <i class="bi bi-arrow-left me-1"></i>Volver al inicio
         </button>
       </form>
+
+      <!-- Nota informativa -->
+      <p class="text-muted text-center small mt-4 mb-0">
+        El sistema verificará su rol y lo redirigirá al panel correspondiente.
+      </p>
+
     </div>
   </div>
 </div>

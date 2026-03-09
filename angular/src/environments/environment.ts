@@ -1,12 +1,3 @@
-/**
- * Configuración de entorno — desarrollo.
- *
- * IMPORTANTE: En producción, reemplazar las claves por variables de entorno
- * inyectadas en tiempo de build (fileReplacements en angular.json).
- *
- * Las claves de Supabase anon/public son seguras para el cliente:
- * la Row-Level Security (RLS) de Supabase protege los datos.
- */
 export const environment = {
   production: false,
 

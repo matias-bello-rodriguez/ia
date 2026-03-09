@@ -1,0 +1,41 @@
+<div class="p-6 max-w-5xl mx-auto">
+  <h2 class="text-2xl font-bold text-gray-800 mb-1">Subir Archivos — Constructora</h2>
+  <p class="text-gray-500 mb-6">Visualice el estado de aprobación de cada etapa y suba la documentación requerida.</p>
+
+  <div class="overflow-x-auto bg-white rounded-lg shadow">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">#</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Etapa</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Proyecto</th>
+          <th class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Semáforo</th>
+          <th class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Acción</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        <tr *ngFor="let etapa of etapas; let i = index" class="hover:bg-gray-50 transition-colors">
+          <td class="px-6 py-4 text-sm text-gray-600">{{ i + 1 }}</td>
+          <td class="px-6 py-4 text-sm font-medium text-gray-800">{{ etapa.nombre }}</td>
+          <td class="px-6 py-4 text-sm text-gray-600">{{ etapa.proyecto }}</td>
+          <td class="px-6 py-4 text-center">
+            <span
+              class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium"
+              [ngClass]="estadoConfig[etapa.estado].color">
+              {{ estadoConfig[etapa.estado].icon }}
+              {{ estadoConfig[etapa.estado].label }}
+            </span>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <button
+              (click)="subirArchivo(etapa)"
+              [disabled]="etapa.estado === 'aprobado'"
+              class="px-4 py-1.5 rounded text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700">
+              📎 Subir Archivo
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

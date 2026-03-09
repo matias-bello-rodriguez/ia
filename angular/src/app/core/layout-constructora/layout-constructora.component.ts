@@ -5,7 +5,8 @@ import { filter } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 
 const MODULE_TITLES: Record<string, { title: string; description: string }> = {
-  'dashboard-constructora': { title: 'Dashboard Constructora', description: 'Panel de control de obra y avance de proyectos' },
+  dashboard: { title: 'Dashboard Constructora', description: 'Panel de control de obra y avance de proyectos' },
+  'subir-archivos': { title: 'Subir Archivos', description: 'Carga de documentación por etapa de obra' },
   semaforo: { title: 'Semáforo de Proyectos', description: 'Estado de carpetas por proyecto de obra' },
   'firma-digital': { title: 'Firma Digital HITO', description: 'Firma electrónica de cierre de carpeta' },
   reportes: { title: 'Reportes de Obra', description: 'Generación de informes y exportación' },
@@ -19,8 +20,8 @@ const MODULE_TITLES: Record<string, { title: string; description: string }> = {
   templateUrl: './layout-constructora.component.html',
 })
 export class LayoutConstructoraComponent implements OnInit {
-  currentTitle = MODULE_TITLES['dashboard-constructora'].title;
-  currentDescription = MODULE_TITLES['dashboard-constructora'].description;
+  currentTitle = MODULE_TITLES['dashboard'].title;
+  currentDescription = MODULE_TITLES['dashboard'].description;
 
   constructor(
     private router: Router,
@@ -35,10 +36,10 @@ export class LayoutConstructoraComponent implements OnInit {
   }
 
   private updateTitleFromUrl(url: string): void {
-    // URL: /dashboard-constructora/semaforo → segments[1] = 'semaforo'
+    // URL: /constructora/semaforo → segments[1] = 'semaforo'
     const segments = url.replace(/^\//, '').split('/');
-    const key = segments.length > 1 ? segments[1] : 'dashboard-constructora';
-    const info = MODULE_TITLES[key] ?? MODULE_TITLES['dashboard-constructora'];
+    const key = segments.length > 1 ? segments[1] : 'dashboard';
+    const info = MODULE_TITLES[key] ?? MODULE_TITLES['dashboard'];
     this.currentTitle = info.title;
     this.currentDescription = info.description;
   }

@@ -207,13 +207,13 @@ export class AuthService {
   /** Determina si el usuario logueado pertenece a una EGIS */
   esEgis(): boolean {
     const rol = this.getRol();
-    return rol === 'admin_egis' || rol === 'hito_egis';
+    return rol === 'egis' || rol === 'hito_egis';
   }
 
   /** Determina si el usuario logueado pertenece a una Constructora */
   esConstructora(): boolean {
     const rol = this.getRol();
-    return rol === 'dueño_constructora' || rol === 'admin_constructora';
+    return rol === 'dueño_constructora' || rol === 'constructora';
   }
 
   /** Determina si el usuario logueado pertenece a SERVIU */
@@ -226,9 +226,9 @@ export class AuthService {
   // NAVEGACIÓN SEGÚN ROL
   // ══════════════════════════════════════════════════════════
   getDashboardPath(): string {
-    if (this.esConstructora()) return '/dashboard-constructora';
+    if (this.esConstructora()) return '/constructora/dashboard';
     // EGIS y SERVIU usan el dashboard principal
-    return '/dashboard-egis';
+    return '/egis/dashboard';
   }
 
   // ══════════════════════════════════════════════════════════

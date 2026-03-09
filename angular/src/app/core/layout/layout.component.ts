@@ -6,6 +6,7 @@ import { AuthService } from '../services/auth.service';
 
 const MODULE_TITLES: Record<string, { title: string; description: string }> = {
   dashboard: { title: 'Dashboard Global', description: 'Visión general del estado de la EGIS' },
+  documentos: { title: 'Documentos EGIS', description: 'Solicitar, revisar y aprobar documentación' },
   comites: { title: 'Comités y Fichas Técnicas', description: 'Gestión de proyectos y beneficiarios' },
   visado: { title: 'Visado Inteligente OCR', description: 'Validación de documentos con IA' },
   semaforo: { title: 'Semáforo de Proyectos', description: 'Estado de carpetas por proyecto (Constructora)' },
@@ -39,7 +40,7 @@ export class LayoutComponent implements OnInit {
   }
 
   private updateTitleFromUrl(url: string): void {
-    // URL: /dashboard-egis/comites → segments after 'dashboard-egis'
+    // URL: /egis/comites → segments after 'egis'
     const segments = url.replace(/^\//, '').split('/');
     const key = segments.length > 1 ? segments[1] : 'dashboard';
     const info = MODULE_TITLES[key] ?? MODULE_TITLES['dashboard'];

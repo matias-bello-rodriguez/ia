@@ -10,10 +10,10 @@
 export type TipoEmpresa = 'egis' | 'constructora' | 'serviu';
 
 export type RolUsuario =
-  | 'admin_egis'
+  | 'egis'
   | 'hito_egis'
   | 'dueño_constructora'
-  | 'admin_constructora'
+  | 'constructora'
   | 'oficina_partes_serviu'
   | 'hito_serviu';
 
@@ -212,10 +212,10 @@ export const TIPO_EMPRESA_LABELS: Record<TipoEmpresa, string> = {
 };
 
 /** Roles que pertenecen a EGIS */
-export const ROLES_EGIS: RolUsuario[] = ['admin_egis', 'hito_egis'];
+export const ROLES_EGIS: RolUsuario[] = ['egis', 'hito_egis'];
 
 /** Roles que pertenecen a Constructora */
-export const ROLES_CONSTRUCTORA: RolUsuario[] = ['dueño_constructora', 'admin_constructora'];
+export const ROLES_CONSTRUCTORA: RolUsuario[] = ['dueño_constructora', 'constructora'];
 
 /** Roles que pertenecen a SERVIU */
 export const ROLES_SERVIU: RolUsuario[] = ['oficina_partes_serviu', 'hito_serviu'];
