@@ -1,12 +1,3 @@
-/**
- * Singleton del cliente Supabase para Angular.
- * Importar desde aquí en toda la app.
- *
- * Se almacena en globalThis para sobrevivir al Hot Module Replacement
- * de Angular y evitar el error "Acquiring an exclusive Navigator
- * LockManager lock … immediately failed" causado por múltiples
- * llamadas a createClient().
- */
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../../environments/environment';
 

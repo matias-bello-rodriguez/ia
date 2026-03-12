@@ -10,7 +10,7 @@ const MODULE_TITLES: Record<string, { title: string; description: string }> = {
   semaforo: { title: 'Semáforo de Proyectos', description: 'Estado de carpetas por proyecto de obra' },
   'firma-digital': { title: 'Firma Digital HITO', description: 'Firma electrónica de cierre de carpeta' },
   reportes: { title: 'Reportes de Obra', description: 'Generación de informes y exportación' },
-  configuracion: { title: 'Configuración', description: 'Parámetros del sistema' },
+  configuracion: { title: 'Mi Cuenta', description: 'Datos de perfil, contraseña y correo' },
 };
 
 @Component({

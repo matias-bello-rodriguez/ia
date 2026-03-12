@@ -5,7 +5,7 @@ import type { Empresa, EmpresaInsert, Usuario } from '../../shared/models/databa
 
 /**
  * Servicio de configuración del sistema.
- * Administra empresas y usuarios desde Supabase.
+ * Administra empresas, usuarios y cuenta propia desde Supabase.
  */
 @Injectable({ providedIn: 'root' })
 export class ConfiguracionService {
@@ -85,6 +85,50 @@ export class ConfiguracionService {
       map(({ data, error }) => {
         if (error) throw error;
         return (data ?? []) as Usuario[];
+      })
+    );
+  }
+
+  // ── Cuenta propia ─────────────────────────────────────────
+
+  /** Cambiar la contraseña del usuario logueado */
+  cambiarPassword(nuevaPassword: string): Observable<void> {
+    return from(
+      this.supabase.auth.updateUser({ password: nuevaPassword })
+    ).pipe(
+      map(({ error }) => {
+        if (error) throw error;
+      })
+    );
+  }
+
+  /** Cambiar el correo del usuario logueado (requiere confirmación vía email) */
+  cambiarCorreo(nuevoCorreo: string): Observable<void> {
+    return from(
+      this.supabase.auth.updateUser({ email: nuevoCorreo })
+    ).pipe(
+      map(({ error }) => {
+        if (error) throw error;
+      })
+    );
+  }
+
+  /** Actualizar datos del perfil en la tabla public.usuarios */
+  actualizarPerfil(
+    usuarioId: string,
+    cambios: Partial<Pick<Usuario, 'nombre_completo' | 'correo'>>,
+  ): Observable<Usuario> {
+    return from(
+      this.supabase
+        .from('usuarios')
+        .update(cambios)
+        .eq('id', usuarioId)
+        .select('*')
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error || !data) throw error ?? new Error('Error al actualizar perfil');
+        return data as Usuario;
       })
     );
   }

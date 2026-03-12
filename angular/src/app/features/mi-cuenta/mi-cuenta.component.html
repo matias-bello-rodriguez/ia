@@ -1,0 +1,176 @@
+<div class="d-flex flex-column gap-4">
+  @if (loading) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p class="small text-body-secondary mt-2 mb-0">Cargando datos de cuenta...</p>
+    </div>
+  } @else {
+
+  <!-- Información de la cuenta -->
+  <div class="card">
+    <div class="card-header d-flex align-items-center gap-2">
+      <i class="bi bi-person-circle text-primary"></i>
+      <div>
+        <h6 class="mb-0">Mi Cuenta</h6>
+        <small class="text-body-secondary">Información personal y datos de acceso</small>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <!-- Datos de solo lectura -->
+        <div class="col-md-6">
+          <label class="form-label small text-body-secondary">RUT</label>
+          <input type="text" class="form-control" [value]="perfil?.rut ?? '—'" disabled>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small text-body-secondary">Rol</label>
+          <input type="text" class="form-control" [value]="perfil?.rol ?? '—'" disabled>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small text-body-secondary">Correo actual</label>
+          <input type="text" class="form-control" [value]="perfil?.correo ?? '—'" disabled>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small text-body-secondary">Fecha de registro</label>
+          <input type="text" class="form-control" [value]="(perfil?.fecha_registro | date:'dd/MM/yyyy') ?? '—'" disabled>
+        </div>
+
+        <!-- Nombre editable -->
+        <div class="col-12">
+          <label class="form-label small fw-medium">Nombre Completo</label>
+          <div class="input-group">
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="nombreCompleto"
+              placeholder="Nombre completo">
+            <button
+              class="btn btn-primary-otic"
+              [disabled]="guardandoPerfil"
+              (click)="guardarPerfil()">
+              @if (guardandoPerfil) {
+                <span class="spinner-border spinner-border-sm me-1"></span>
+              }
+              <i class="bi bi-check2 me-1"></i> Guardar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empresa asociada -->
+  @if (empresa) {
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-building text-primary"></i>
+        <div>
+          <h6 class="mb-0">Empresa Asociada</h6>
+          <small class="text-body-secondary">Datos de la empresa a la que pertenece su cuenta</small>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label small text-body-secondary">Razón Social</label>
+            <input type="text" class="form-control" [value]="empresa.razon_social" disabled>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small text-body-secondary">RUT Empresa</label>
+            <input type="text" class="form-control" [value]="empresa.rut" disabled>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small text-body-secondary">Tipo</label>
+            <input type="text" class="form-control" [value]="tipoLabels[empresa.tipo]" disabled>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small text-body-secondary">Nombre Fantasía</label>
+            <input type="text" class="form-control" [value]="empresa.nombre_fantasia ?? '—'" disabled>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small text-body-secondary">Representante Legal</label>
+            <input type="text" class="form-control" [value]="empresa.nombre_representante_legal ?? '—'" disabled>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Cambiar Contraseña -->
+  <div class="card">
+    <div class="card-header d-flex align-items-center gap-2">
+      <i class="bi bi-shield-lock text-warning"></i>
+      <div>
+        <h6 class="mb-0">Cambiar Contraseña</h6>
+        <small class="text-body-secondary">Actualice su contraseña de acceso al sistema</small>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label small fw-medium">Nueva Contraseña</label>
+          <input
+            type="password"
+            class="form-control"
+            [(ngModel)]="nuevaPassword"
+            placeholder="Mínimo 6 caracteres">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-medium">Confirmar Contraseña</label>
+          <input
+            type="password"
+            class="form-control"
+            [(ngModel)]="confirmarPassword"
+            placeholder="Repita la contraseña">
+        </div>
+        <div class="col-12">
+          <button
+            class="btn btn-warning text-dark"
+            [disabled]="guardandoPassword || !nuevaPassword"
+            (click)="cambiarPassword()">
+            @if (guardandoPassword) {
+              <span class="spinner-border spinner-border-sm me-1"></span>
+            }
+            <i class="bi bi-key me-1"></i> Cambiar Contraseña
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cambiar Correo -->
+  <div class="card">
+    <div class="card-header d-flex align-items-center gap-2">
+      <i class="bi bi-envelope text-info"></i>
+      <div>
+        <h6 class="mb-0">Cambiar Correo Electrónico</h6>
+        <small class="text-body-secondary">Se enviará un enlace de confirmación al nuevo correo</small>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-8">
+          <label class="form-label small fw-medium">Nuevo Correo</label>
+          <input
+            type="email"
+            class="form-control"
+            [(ngModel)]="nuevoCorreo"
+            placeholder="nuevo@correo.com">
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+          <button
+            class="btn btn-info text-white w-100"
+            [disabled]="guardandoCorreo || !nuevoCorreo"
+            (click)="cambiarCorreo()">
+            @if (guardandoCorreo) {
+              <span class="spinner-border spinner-border-sm me-1"></span>
+            }
+            <i class="bi bi-envelope-check me-1"></i> Cambiar Correo
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  }
+</div>

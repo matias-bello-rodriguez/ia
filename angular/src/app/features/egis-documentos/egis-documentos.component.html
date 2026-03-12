@@ -2,12 +2,24 @@
   <h2 class="text-2xl font-bold text-gray-800 mb-1">Documentos EGIS</h2>
   <p class="text-gray-500 mb-6">Revise y apruebe la documentación recibida de las constructoras.</p>
 
-  <div class="overflow-x-auto bg-white rounded-lg shadow">
+  <!-- Loading -->
+  <div *ngIf="cargando" class="flex justify-center py-12">
+    <span class="text-gray-500">Cargando documentos…</span>
+  </div>
+
+  <!-- Sin documentos -->
+  <div *ngIf="!cargando && documentos.length === 0" class="text-center py-12 text-gray-400">
+    No hay documentos para mostrar.
+  </div>
+
+  <!-- Tabla -->
+  <div *ngIf="!cargando && documentos.length > 0" class="overflow-x-auto bg-white rounded-lg shadow">
     <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
         <tr>
           <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">#</th>
           <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Documento</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tipo</th>
           <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Proyecto</th>
           <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Fecha Subida</th>
           <th class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
@@ -17,26 +29,30 @@
       <tbody class="divide-y divide-gray-100">
         <tr *ngFor="let doc of documentos; let i = index" class="hover:bg-gray-50 transition-colors">
           <td class="px-6 py-4 text-sm text-gray-600">{{ i + 1 }}</td>
-          <td class="px-6 py-4 text-sm font-medium text-gray-800">{{ doc.nombre }}</td>
-          <td class="px-6 py-4 text-sm text-gray-600">{{ doc.proyecto }}</td>
-          <td class="px-6 py-4 text-sm text-gray-600">{{ doc.fechaSubida }}</td>
+          <td class="px-6 py-4 text-sm font-medium text-gray-800">{{ doc.nombre_archivo }}</td>
+          <td class="px-6 py-4 text-sm text-gray-600">{{ doc.tipo_documento }}</td>
+          <td class="px-6 py-4 text-sm text-gray-600">{{ getNombreProyecto(doc) }}</td>
+          <td class="px-6 py-4 text-sm text-gray-600">{{ doc.fecha_subida | date:'yyyy-MM-dd' }}</td>
           <td class="px-6 py-4 text-center">
             <span
               class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-              [ngClass]="doc.aprobado
-                ? 'bg-green-100 text-green-800'
-                : 'bg-yellow-100 text-yellow-800'">
-              {{ doc.aprobado ? '✓ Aprobado' : '⏳ Pendiente' }}
+              [style.background-color]="semaforoColors[doc.estado_actual] + '22'"
+              [style.color]="semaforoColors[doc.estado_actual]">
+              {{ semaforoLabels[doc.estado_actual] }}
             </span>
           </td>
-          <td class="px-6 py-4 text-center">
+          <td class="px-6 py-4 text-center space-x-2">
             <button
-              (click)="toggleAprobacion(doc)"
-              class="px-4 py-1.5 rounded text-sm font-medium transition-colors"
-              [ngClass]="doc.aprobado
-                ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                : 'bg-green-600 text-white hover:bg-green-700'">
-              {{ doc.aprobado ? 'Revocar' : 'Dar Visto Bueno' }}
+              *ngIf="!esAprobado(doc)"
+              (click)="aprobarDocumento(doc)"
+              class="px-3 py-1.5 rounded text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors">
+              Aprobar
+            </button>
+            <button
+              *ngIf="!esRechazado(doc)"
+              (click)="rechazarDocumento(doc)"
+              class="px-3 py-1.5 rounded text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
+              Rechazar
             </button>
           </td>
         </tr>

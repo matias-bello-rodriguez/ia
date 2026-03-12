@@ -40,6 +40,22 @@ export class DocumentosService {
     );
   }
 
+  /** Obtener documentos de un proyecto con relaciones expandidas */
+  obtenerDocumentosPorProyecto(proyectoId: string): Observable<DocumentoConRelaciones[]> {
+    return from(
+      this.supabase
+        .from('documentos')
+        .select('*, proyecto:proyectos(*), subido_por_usuario:usuarios(*)')
+        .eq('proyecto_id', proyectoId)
+        .order('fecha_subida', { ascending: false })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw error;
+        return (data ?? []) as DocumentoConRelaciones[];
+      })
+    );
+  }
+
   /** Obtener un documento por su ID con relaciones */
   getById(id: string): Observable<DocumentoConRelaciones> {
     return from(

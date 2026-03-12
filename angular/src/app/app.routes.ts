@@ -125,8 +125,8 @@ export const routes: Routes = [
       {
         path: 'configuracion',
         loadComponent: () =>
-          import('./features/configuracion/configuracion.component').then(
-            (m) => m.ConfiguracionComponent,
+          import('./features/mi-cuenta/mi-cuenta.component').then(
+            (m) => m.MiCuentaComponent,
           ),
       },
     ],
