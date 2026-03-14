@@ -41,9 +41,11 @@ export class EgisDocumentosComponent implements OnInit {
     const rol = this.auth.getRol();
 
     if (!empresaId || !rol) {
+      console.log(!empresaId || !rol);
       this.alertService.error('No se pudo obtener la sesión del usuario.');
       this.cargando = false;
       return;
+      
     }
 
     try {
