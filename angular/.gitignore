@@ -1,5 +1,15 @@
+# Dependencias
+node_modules/
+
+# Build y cache Angular
+dist/
+.angular/
+*.tsbuildinfo
+
 # Entorno y secretos
 .env
+.env.local
+.env.*.local
 .venv/
 venv/
 env/
@@ -11,7 +21,6 @@ __pycache__/
 .Python
 *.egg-info/
 .eggs/
-dist/
 build/
 
 # Django
@@ -25,3 +34,7 @@ media/
 .vscode/
 *.swp
 *.swo
+
+# OS
+.DS_Store
+Thumbs.db
