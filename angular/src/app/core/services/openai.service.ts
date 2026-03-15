@@ -29,6 +29,42 @@ export class OpenaiService {
   }
 
   /**
+   * Envía una imagen (base64 PNG) al modelo con visión y pide extraer texto e información.
+   * Para PDFs escaneados o con imágenes incrustadas (proyecto_egis).
+   */
+  extraerTextoDeImagen(base64Png: string, nombreArchivo: string, promptTexto?: string): Observable<string> {
+    const prompt = promptTexto ?? `Eres un asistente del proyecto proyecto_egis. Esta imagen corresponde a una página del documento "${nombreArchivo}".
+
+Tu tarea: extrae TODO el texto visible en la imagen y la información más importante (fechas, montos, partes, requisitos, tablas, formularios). Responde en español, de forma clara. Usa viñetas (•) para los puntos. No inventes datos.`;
+
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${environment.openaiApiKey}`,
+    });
+    const body = {
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            {
+              type: 'image_url',
+              image_url: { url: `data:image/png;base64,${base64Png}` },
+            },
+          ],
+        },
+      ],
+      max_tokens: 1024,
+    };
+    return this.http
+      .post<{ choices?: Array<{ message?: { content?: string } }> }>(environment.openaiUrl, body, { headers })
+      .pipe(
+        map((res) => res.choices?.[0]?.message?.content?.trim() ?? '')
+      );
+  }
+
+  /**
    * Pide a la IA que extraiga la información más importante del texto del documento (PDF)
    * para el proyecto proyecto_egis.
    */

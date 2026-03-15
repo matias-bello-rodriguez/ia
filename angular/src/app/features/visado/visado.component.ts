@@ -69,6 +69,11 @@ export class VisadoComponent implements OnInit {
     this.loadQueue();
   }
 
+  /** Escala para renderizar PDF a imagen (calidad tipo 300 DPI) */
+  private readonly PDF_RENDER_SCALE = 2;
+  /** Máximo de páginas a enviar a visión cuando el PDF no tiene texto (límite coste API) */
+  private readonly MAX_PAGINAS_VISION = 10;
+
   /** Extrae el texto de un PDF usando PDF.js */
   private async extraerTextoPdf(file: File): Promise<string> {
     const data = new Uint8Array(await file.arrayBuffer());
@@ -84,6 +89,40 @@ export class VisadoComponent implements OnInit {
       if (texto.trim()) partes.push(texto.trim());
     }
     return partes.join('\n\n') || '';
+  }
+
+  /** Renderiza una página del PDF a imagen PNG (base64). */
+  private async renderizarPaginaPdfComoImagen(
+    pdf: { getPage(i: number): Promise<{ getViewport(o: { scale: number }): { width: number; height: number }; render(o: object): { promise: Promise<void> } }> },
+    pageNum: number
+  ): Promise<string> {
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({ scale: this.PDF_RENDER_SCALE });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('No se pudo obtener contexto 2d');
+    const renderTask = page.render({
+      canvasContext: ctx,
+      viewport,
+    });
+    await renderTask.promise;
+    const dataUrl = canvas.toDataURL('image/png');
+    return dataUrl.replace(/^data:image\/png;base64,/, '');
+  }
+
+  /** Convierte las páginas del PDF a imágenes (base64). Máximo MAX_PAGINAS_VISION. */
+  private async pdfPaginasAImagenes(file: File): Promise<string[]> {
+    const data = new Uint8Array(await file.arrayBuffer());
+    const pdf = await getDocument({ data }).promise;
+    const numPages = Math.min(pdf.numPages, this.MAX_PAGINAS_VISION);
+    const bases: string[] = [];
+    for (let i = 1; i <= numPages; i++) {
+      const base64 = await this.renderizarPaginaPdfComoImagen(pdf, i);
+      bases.push(base64);
+    }
+    return bases;
   }
 
   // ── Carga de archivos ─────────────────────────────────────
@@ -158,12 +197,13 @@ export class VisadoComponent implements OnInit {
 
   /** Analiza el documento seleccionado con IA (proyecto_egis) y muestra el resumen en Resultado. */
   analizarConIA(): void {
-    if (!this.selectedFile) {
+    const file = this.selectedFile;
+    if (!file) {
       this.alert.warning('Seleccione un documento.');
       return;
     }
-    const nombre = this.selectedFileName || this.selectedFile.name;
-    const esPdf = this.selectedFile.type === 'application/pdf' || nombre.toLowerCase().endsWith('.pdf');
+    const nombre = this.selectedFileName || file.name;
+    const esPdf = file.type === 'application/pdf' || nombre.toLowerCase().endsWith('.pdf');
     if (!esPdf) {
       this.errorAnalisis = 'El análisis con IA solo está disponible para archivos PDF.';
       this.showResults = true;
@@ -175,28 +215,88 @@ export class VisadoComponent implements OnInit {
     this.resumenIA = '';
     this.showResults = true;
 
-    this.extraerTextoPdf(this.selectedFile)
-      .then((texto) => {
-        if (!texto || texto.length < 10) {
-          this.resumenIA = 'No se pudo extraer texto del PDF (por ejemplo, puede ser un escaneo). Sube una imagen de una página para analizarla con IA.';
+    const hacerResumenConTexto = (texto: string) => {
+      this.openai.extraerInformacionDocumento(texto, nombre).subscribe({
+        next: (resumen) => {
+          this.resumenIA = resumen || 'Sin resumen generado.';
           this.analizando = false;
+        },
+        error: (err: Error) => {
+          this.errorAnalisis = err?.message ?? 'Error al llamar a la IA.';
+          this.analizando = false;
+        },
+      });
+    };
+
+    this.extraerTextoPdf(file)
+      .then((texto) => {
+        if (texto && texto.length >= 50) {
+          hacerResumenConTexto(texto);
           return;
         }
-        this.openai.extraerInformacionDocumento(texto, nombre).subscribe({
-          next: (resumen) => {
-            this.resumenIA = resumen || 'Sin resumen generado.';
+        // PDF sin texto extraíble (escaneo, imagen): convertir páginas a imagen y analizar con visión
+        this.pdfPaginasAImagenes(file)
+          .then((imagenesBase64) => {
+            if (imagenesBase64.length === 0) {
+              this.resumenIA = 'No se pudieron generar imágenes del PDF.';
+              this.analizando = false;
+              return;
+            }
+            this.analizarImagenesConVision(imagenesBase64, nombre, hacerResumenConTexto);
+          })
+          .catch((err: Error) => {
+            this.errorAnalisis = err?.message ?? 'Error al convertir el PDF a imágenes.';
             this.analizando = false;
-          },
-          error: (err: Error) => {
-            this.errorAnalisis = err?.message ?? 'Error al llamar a la IA.';
-            this.analizando = false;
-          },
-        });
+          });
       })
       .catch((err: Error) => {
         this.errorAnalisis = err?.message ?? 'Error al leer el PDF.';
         this.analizando = false;
       });
+  }
+
+  /**
+   * Envía cada imagen al modelo de visión, concatena el texto extraído y luego pide el resumen (proyecto_egis).
+   */
+  private analizarImagenesConVision(
+    imagenesBase64: string[],
+    nombreArchivo: string,
+    onTextoCompleto: (texto: string) => void
+  ): void {
+    const partes: string[] = [];
+    let index = 0;
+
+    const siguiente = () => {
+      if (index >= imagenesBase64.length) {
+        const textoCompleto = partes.join('\n\n');
+        if (textoCompleto.trim()) {
+          onTextoCompleto(textoCompleto);
+        } else {
+          this.resumenIA = 'No se pudo extraer texto de las imágenes del PDF.';
+          this.analizando = false;
+        }
+        return;
+      }
+      this.openai
+        .extraerTextoDeImagen(
+          imagenesBase64[index],
+          `${nombreArchivo} (página ${index + 1})`,
+          `Eres un asistente del proyecto proyecto_egis. Esta imagen es la página ${index + 1} del documento "${nombreArchivo}". Extrae TODO el texto visible y los datos importantes (fechas, montos, partes, tablas). Responde en español, sin inventar datos.`
+        )
+        .subscribe({
+          next: (texto) => {
+            if (texto?.trim()) partes.push(`--- Página ${index + 1} ---\n${texto.trim()}`);
+            index++;
+            siguiente();
+          },
+          error: (err: Error) => {
+            this.errorAnalisis = err?.message ?? 'Error al analizar la imagen con IA.';
+            this.analizando = false;
+          },
+        });
+    };
+
+    siguiente();
   }
 
   upload(): void {
