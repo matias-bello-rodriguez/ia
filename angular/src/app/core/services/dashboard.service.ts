@@ -1,8 +1,11 @@
 import { Injectable } from '@angular/core';
 import { from, map, Observable, forkJoin } from 'rxjs';
 import { getSupabaseClient } from './supabase-client';
-import type { EstadoSemaforo, EstadoProyecto } from '../../shared/models/database.types';
+import type { EstadoSemaforo, EstadoProyecto, Proyecto, Documento } from '../../shared/models/database.types';
 import { SEMAFORO_LABELS, ESTADO_PROYECTO_LABELS } from '../../shared/models/database.types';
+
+type ProyectoRow = Pick<Proyecto, 'id' | 'monto_uf' | 'estado_actual' | 'tipo_subsidio'>;
+type DocumentoRow = Pick<Documento, 'id' | 'estado_actual'>;
 
 // ── Tipos para la UI del Dashboard ──────────────────────────
 export interface MetricItem {
@@ -61,14 +64,14 @@ export class DashboardService {
         if (proyectosRes.error) throw proyectosRes.error;
         if (documentosRes.error) throw documentosRes.error;
 
-        const proyectos = proyectosRes.data ?? [];
-        const documentos = documentosRes.data ?? [];
+        const proyectos: ProyectoRow[] = proyectosRes.data ?? [];
+        const documentos: DocumentoRow[] = documentosRes.data ?? [];
 
         // ── Métricas ────────────────────────────────────────
-        const totalUf = proyectos.reduce((sum, p) => sum + (Number(p.monto_uf) || 0), 0);
-        const docsAprobados = documentos.filter(d => d.estado_actual === 'aprobado_verde').length;
-        const proyectosEjecucion = proyectos.filter(p => p.estado_actual === 'en_ejecucion').length;
-        const docsRechazados = documentos.filter(d => d.estado_actual === 'rechazado_rojo').length;
+        const totalUf = proyectos.reduce((sum: number, p: ProyectoRow) => sum + (Number(p.monto_uf) || 0), 0);
+        const docsAprobados = documentos.filter((d: DocumentoRow) => d.estado_actual === 'aprobado_verde').length;
+        const proyectosEjecucion = proyectos.filter((p: ProyectoRow) => p.estado_actual === 'en_ejecucion').length;
+        const docsRechazados = documentos.filter((d: DocumentoRow) => d.estado_actual === 'rechazado_rojo').length;
 
         const metrics: MetricItem[] = [
           {
@@ -89,14 +92,14 @@ export class DashboardService {
             title: 'Proyectos en Ejecución',
             value: String(proyectosEjecucion),
             subtitle: 'En ejecución activa',
-            trend: `${proyectos.filter(p => p.estado_actual === 'recopilacion_antecedentes').length} en recopilación`,
+            trend: `${proyectos.filter((p: ProyectoRow) => p.estado_actual === 'recopilacion_antecedentes').length} en recopilación`,
             icon: 'bi-bricks',
           },
           {
             title: 'Documentos Rechazados',
             value: String(docsRechazados),
             subtitle: 'Requieren atención',
-            trend: `${documentos.filter(d => d.estado_actual === 'pendiente_amarillo').length} pendientes`,
+            trend: `${documentos.filter((d: any) => d.estado_actual === 'pendiente_amarillo').length} pendientes`,
             icon: 'bi-exclamation-triangle',
           },
         ];
