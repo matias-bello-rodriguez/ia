@@ -76,7 +76,7 @@ export class AuthService {
     }
 
     // Escuchar cambios de auth (login, logout, token refresh)
-    this.supabase.auth.onAuthStateChange(async (event, session) => {
+    this.supabase.auth.onAuthStateChange(async (event: any, session: any) => {
       if (event === 'SIGNED_IN' && session?.user) {
         const sesion = await this.cargarPerfilUsuario(session.user.id, session.user.email!);
         this.establecerSesion(sesion);
