@@ -4,8 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { DocumentosService } from '../../core/services/documentos.service';
 import { AuthService } from '../../core/services/auth.service';
 import { AlertService } from '../../core/services/alert.service';
+import { OpenaiService } from '../../core/services/openai.service';
 import type { Documento, EstadoSemaforo } from '../../shared/models/database.types';
-import { SEMAFORO_LABELS, SEMAFORO_COLORS } from '../../shared/models/database.types';
+import { SEMAFORO_LABELS } from '../../shared/models/database.types';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 
 /** Tipos de documento reconocidos por el sistema */
 const TIPOS_DOCUMENTO = [
@@ -44,6 +46,11 @@ export class VisadoComponent implements OnInit {
   uploadedDoc: Documento | null = null;
   errorMsg = '';
 
+  // ── Análisis IA (proyecto_egis) ───────────────────────────
+  analizando = false;
+  resumenIA = '';
+  errorAnalisis = '';
+
   // ── Cola de documentos ────────────────────────────────────
   documentQueue: Documento[] = [];
   loadingQueue = true;
@@ -52,10 +59,31 @@ export class VisadoComponent implements OnInit {
     private documentosService: DocumentosService,
     private auth: AuthService,
     private alert: AlertService,
+    private openai: OpenaiService,
   ) {}
 
   ngOnInit(): void {
+    if (typeof GlobalWorkerOptions?.workerSrc === 'undefined' || !GlobalWorkerOptions.workerSrc) {
+      GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
+    }
     this.loadQueue();
+  }
+
+  /** Extrae el texto de un PDF usando PDF.js */
+  private async extraerTextoPdf(file: File): Promise<string> {
+    const data = new Uint8Array(await file.arrayBuffer());
+    const pdf = await getDocument({ data }).promise;
+    const numPages = pdf.numPages;
+    const partes: string[] = [];
+    for (let i = 1; i <= numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const texto = content.items
+        .map((item) => ('str' in item && typeof (item as { str: string }).str === 'string' ? (item as { str: string }).str : ''))
+        .join(' ');
+      if (texto.trim()) partes.push(texto.trim());
+    }
+    return partes.join('\n\n') || '';
   }
 
   // ── Carga de archivos ─────────────────────────────────────
@@ -67,6 +95,8 @@ export class VisadoComponent implements OnInit {
       this.selectedFileName = this.selectedFile.name;
       this.showResults = false;
       this.errorMsg = '';
+      this.resumenIA = '';
+      this.errorAnalisis = '';
     }
   }
 
@@ -78,6 +108,8 @@ export class VisadoComponent implements OnInit {
       this.selectedFileName = file.name;
       this.showResults = false;
       this.errorMsg = '';
+      this.resumenIA = '';
+      this.errorAnalisis = '';
     }
   }
 
@@ -94,6 +126,8 @@ export class VisadoComponent implements OnInit {
     this.selectedFileName = '';
     this.showResults = false;
     this.errorMsg = '';
+    this.resumenIA = '';
+    this.errorAnalisis = '';
     if (this.fileInput) this.fileInput.nativeElement.value = '';
   }
 
@@ -120,6 +154,49 @@ export class VisadoComponent implements OnInit {
 
   get canUpload(): boolean {
     return !!this.selectedFile && !!this.tipoDocumento && !!this.proyectoId && !this.isUploading;
+  }
+
+  /** Analiza el documento seleccionado con IA (proyecto_egis) y muestra el resumen en Resultado. */
+  analizarConIA(): void {
+    if (!this.selectedFile) {
+      this.alert.warning('Seleccione un documento.');
+      return;
+    }
+    const nombre = this.selectedFileName || this.selectedFile.name;
+    const esPdf = this.selectedFile.type === 'application/pdf' || nombre.toLowerCase().endsWith('.pdf');
+    if (!esPdf) {
+      this.errorAnalisis = 'El análisis con IA solo está disponible para archivos PDF.';
+      this.showResults = true;
+      this.resumenIA = '';
+      return;
+    }
+    this.analizando = true;
+    this.errorAnalisis = '';
+    this.resumenIA = '';
+    this.showResults = true;
+
+    this.extraerTextoPdf(this.selectedFile)
+      .then((texto) => {
+        if (!texto || texto.length < 10) {
+          this.resumenIA = 'No se pudo extraer texto del PDF (por ejemplo, puede ser un escaneo). Sube una imagen de una página para analizarla con IA.';
+          this.analizando = false;
+          return;
+        }
+        this.openai.extraerInformacionDocumento(texto, nombre).subscribe({
+          next: (resumen) => {
+            this.resumenIA = resumen || 'Sin resumen generado.';
+            this.analizando = false;
+          },
+          error: (err: Error) => {
+            this.errorAnalisis = err?.message ?? 'Error al llamar a la IA.';
+            this.analizando = false;
+          },
+        });
+      })
+      .catch((err: Error) => {
+        this.errorAnalisis = err?.message ?? 'Error al leer el PDF.';
+        this.analizando = false;
+      });
   }
 
   upload(): void {
