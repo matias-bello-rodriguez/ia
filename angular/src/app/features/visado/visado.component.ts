@@ -74,8 +74,14 @@ export class VisadoComponent implements OnInit {
   /** Máximo de páginas a enviar a visión cuando el PDF no tiene texto (límite coste API) */
   private readonly MAX_PAGINAS_VISION = 10;
 
-  /** Extrae el texto de un PDF usando PDF.js */
+  /** Extrae el texto de un PDF usando PDF.js (texto completo, todas las páginas). */
   private async extraerTextoPdf(file: File): Promise<string> {
+    const porPagina = await this.extraerTextoPdfPorPagina(file);
+    return porPagina.join('\n\n') || '';
+  }
+
+  /** Extrae el texto del PDF por página. Retorna un array: [texto página 1, texto página 2, ...]. */
+  private async extraerTextoPdfPorPagina(file: File): Promise<string[]> {
     const data = new Uint8Array(await file.arrayBuffer());
     const pdf = await getDocument({ data }).promise;
     const numPages = pdf.numPages;
@@ -86,9 +92,9 @@ export class VisadoComponent implements OnInit {
       const texto = content.items
         .map((item) => ('str' in item && typeof (item as { str: string }).str === 'string' ? (item as { str: string }).str : ''))
         .join(' ');
-      if (texto.trim()) partes.push(texto.trim());
+      partes.push(texto.trim());
     }
-    return partes.join('\n\n') || '';
+    return partes;
   }
 
   /** Renderiza una página del PDF a imagen PNG (base64). */
@@ -215,26 +221,14 @@ export class VisadoComponent implements OnInit {
     this.resumenIA = '';
     this.showResults = true;
 
-    const hacerResumenConTexto = (texto: string) => {
-      this.openai.extraerInformacionDocumento(texto, nombre).subscribe({
-        next: (resumen) => {
-          this.resumenIA = resumen || 'Sin resumen generado.';
-          this.analizando = false;
-        },
-        error: (err: Error) => {
-          this.errorAnalisis = err?.message ?? 'Error al llamar a la IA.';
-          this.analizando = false;
-        },
-      });
-    };
-
-    this.extraerTextoPdf(file)
-      .then((texto) => {
-        if (texto && texto.length >= 50) {
-          hacerResumenConTexto(texto);
+    this.extraerTextoPdfPorPagina(file)
+      .then((textosPorPagina) => {
+        const conSuficienteTexto = textosPorPagina.some((t) => t.length >= 50);
+        if (conSuficienteTexto) {
+          this.resumenPorPaginaConTexto(textosPorPagina, nombre);
           return;
         }
-        // PDF sin texto extraíble (escaneo, imagen): convertir páginas a imagen y analizar con visión
+        // PDF sin texto extraíble (escaneo, imagen): convertir páginas a imagen y resumen por página con visión
         this.pdfPaginasAImagenes(file)
           .then((imagenesBase64) => {
             if (imagenesBase64.length === 0) {
@@ -242,7 +236,7 @@ export class VisadoComponent implements OnInit {
               this.analizando = false;
               return;
             }
-            this.analizarImagenesConVision(imagenesBase64, nombre, hacerResumenConTexto);
+            this.resumenPorPaginaConVision(imagenesBase64, nombre);
           })
           .catch((err: Error) => {
             this.errorAnalisis = err?.message ?? 'Error al convertir el PDF a imágenes.';
@@ -255,37 +249,63 @@ export class VisadoComponent implements OnInit {
       });
   }
 
+  /** Genera un resumen por página usando el texto extraído del PDF. */
+  private resumenPorPaginaConTexto(textosPorPagina: string[], nombreArchivo: string): void {
+    const resumenes: string[] = [];
+    let index = 0;
+
+    const siguiente = () => {
+      if (index >= textosPorPagina.length) {
+        this.resumenIA = resumenes.join('\n\n');
+        this.analizando = false;
+        return;
+      }
+      const textoPagina = textosPorPagina[index];
+      const numPagina = index + 1;
+      if (!textoPagina || textoPagina.length < 10) {
+        resumenes.push(`--- Página ${numPagina} ---\n(Sin texto extraíble en esta página.)`);
+        index++;
+        siguiente();
+        return;
+      }
+      this.openai.resumenPaginaDocumento(textoPagina, nombreArchivo, numPagina).subscribe({
+        next: (resumen) => {
+          resumenes.push(`--- Página ${numPagina} ---\n${resumen?.trim() || '—'}`);
+          index++;
+          siguiente();
+        },
+        error: (err: Error) => {
+          this.errorAnalisis = err?.message ?? `Error al resumir la página ${numPagina}.`;
+          this.analizando = false;
+        },
+      });
+    };
+
+    siguiente();
+  }
+
   /**
-   * Envía cada imagen al modelo de visión, concatena el texto extraído y luego pide el resumen (proyecto_egis).
+   * Genera un resumen por página usando visión (imagen de cada página).
    */
-  private analizarImagenesConVision(
-    imagenesBase64: string[],
-    nombreArchivo: string,
-    onTextoCompleto: (texto: string) => void
-  ): void {
+  private resumenPorPaginaConVision(imagenesBase64: string[], nombreArchivo: string): void {
     const partes: string[] = [];
     let index = 0;
 
     const siguiente = () => {
       if (index >= imagenesBase64.length) {
-        const textoCompleto = partes.join('\n\n');
-        if (textoCompleto.trim()) {
-          onTextoCompleto(textoCompleto);
-        } else {
-          this.resumenIA = 'No se pudo extraer texto de las imágenes del PDF.';
-          this.analizando = false;
-        }
+        this.resumenIA = partes.length > 0 ? partes.join('\n\n') : 'No se pudo extraer resumen de las imágenes.';
+        this.analizando = false;
         return;
       }
+      const numPagina = index + 1;
+      const promptResumen = `Eres un asistente del proyecto proyecto_egis. Esta imagen es la PÁGINA ${numPagina} del documento "${nombreArchivo}".
+
+Tu tarea: haz un RESUMEN de la información más importante de ESTA página (fechas, montos, partes, requisitos, tablas). Responde en español, breve y con viñetas (•). No inventes datos.`;
       this.openai
-        .extraerTextoDeImagen(
-          imagenesBase64[index],
-          `${nombreArchivo} (página ${index + 1})`,
-          `Eres un asistente del proyecto proyecto_egis. Esta imagen es la página ${index + 1} del documento "${nombreArchivo}". Extrae TODO el texto visible y los datos importantes (fechas, montos, partes, tablas). Responde en español, sin inventar datos.`
-        )
+        .extraerTextoDeImagen(imagenesBase64[index], `${nombreArchivo} (página ${numPagina})`, promptResumen)
         .subscribe({
-          next: (texto) => {
-            if (texto?.trim()) partes.push(`--- Página ${index + 1} ---\n${texto.trim()}`);
+          next: (resumen) => {
+            partes.push(`--- Página ${numPagina} ---\n${resumen?.trim() || '—'}`);
             index++;
             siguiente();
           },

@@ -84,4 +84,19 @@ ${textoDocumento}
 --- FIN ---`;
     return this.askGPT(prompt);
   }
+
+  /**
+   * Resumen de UNA sola página del documento (proyecto_egis).
+   * Para combinar después: "Página 1: ... Página 2: ..."
+   */
+  resumenPaginaDocumento(textoPagina: string, nombreArchivo: string, numeroPagina: number): Observable<string> {
+    const prompt = `Eres un asistente del proyecto proyecto_egis. A continuación solo el texto de la PÁGINA ${numeroPagina} del documento "${nombreArchivo}".
+
+Tu tarea: resume ÚNICAMENTE la información más importante de ESTA página (fechas, montos, partes, requisitos, datos relevantes para trámites). Responde en español, breve y con viñetas (•). No inventes datos.
+
+--- PÁGINA ${numeroPagina} ---
+${textoPagina}
+--- FIN ---`;
+    return this.askGPT(prompt);
+  }
 }
