@@ -94,9 +94,9 @@
     </div>
   </nav>
 
-  <!-- Main -->
-  <div class="grow d-flex flex-column min-vh-100">
-    <header class="border-bottom bg-white px-4 py-3 d-flex align-items-center gap-3">
+  <!-- Main: área de contenido a ancho completo (solución centralizada) -->
+  <div class="egis-layout-content d-flex flex-column flex-grow-1 min-vh-100">
+    <header class="border-bottom bg-white px-4 py-3 d-flex align-items-center gap-3 flex-shrink-0">
       <div class="vr d-none d-md-block"></div>
       <div class="grow">
         <h1 class="h6 fw-semibold mb-0 text-body">{{ currentTitle }}</h1>
@@ -106,7 +106,7 @@
         <i class="bi bi-robot"></i> IA Activa <i class="bi bi-stars"></i>
       </span>
     </header>
-    <main class="grow overflow-auto p-4">
+    <main class="egis-layout-main flex-grow-1 overflow-auto p-4">
       <router-outlet (activate)="onActivate()"></router-outlet>
     </main>
   </div>

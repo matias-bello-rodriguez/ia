@@ -13,7 +13,7 @@
         </div>
       } @else {
         <div class="row g-3 align-items-end">
-          <div class="col-12 col-md-8">
+          <div class="col-12 col-md-12">
             <label class="form-label fw-medium">Proyecto</label>
             <select
               class="form-select"
@@ -99,7 +99,7 @@
                       style="cursor: default;">
                       <td class="ps-3 text-body-secondary small">{{ i + 1 }}</td>
                       <td>
-                        <div class="fw-medium font-monospace small text-truncate" style="max-width: 200px;">{{ doc.nombre_archivo }}</div>
+                        <div class="fw-medium font-monospace small text-truncate" style="max-width: 100%;">{{ doc.nombre_archivo }}</div>
                       </td>
                       <td class="text-body-secondary small">{{ doc.tipo_documento }}</td>
                       <td class="text-body-secondary small">{{ doc.fecha_subida | date:'yyyy-MM-dd' }}</td>

@@ -85,6 +85,27 @@ body {
   margin-right: 0.5rem;
 }
 
+/* ==========================================================================
+   Contenido centralizado del layout EGIS — una sola fuente de verdad
+   El área principal y todas las vistas hijas usan el ancho disponible.
+   ========================================================================== */
+.egis-layout-content {
+  min-width: 0;
+  width: 100%;
+}
+
+.egis-layout-main {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Todas las vistas cargadas en router-outlet heredan ancho completo */
+.egis-layout-main > * {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 /* --- Estilos OTIC (app-wide) --- */
 .required-asterisk {
   color: red;
