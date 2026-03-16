@@ -335,6 +335,36 @@ export class DocumentosService {
   }
 
   // ══════════════════════════════════════════════════════════
+  // DESCARGAR ARCHIVO DESDE STORAGE
+  // ══════════════════════════════════════════════════════════
+
+  /**
+   * Descarga un archivo desde Supabase Storage usando el SDK
+   * (evita problemas de bucket público / 404).
+   * Extrae el storagePath desde la URL almacenada en ruta_almacenamiento.
+   */
+  descargarArchivo(rutaAlmacenamiento: string): Observable<Blob> {
+    // La URL tiene formato: .../storage/v1/object/public/{bucket}/{storagePath}
+    const regex = /\/storage\/v1\/object\/public\/[^/]+\/(.+)/;
+    const match = rutaAlmacenamiento.match(regex);
+
+    if (!match?.[1]) {
+      return throwError(() => new Error('No se pudo extraer la ruta del archivo desde la URL almacenada.'));
+    }
+
+    const storagePath = decodeURIComponent(match[1]);
+
+    return from(
+      this.supabase.storage.from(this.bucket).download(storagePath)
+    ).pipe(
+      map(({ data, error }) => {
+        if (error || !data) throw error ?? new Error('Error al descargar archivo del storage');
+        return data;
+      })
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════
   // ELIMINAR DOCUMENTO — Storage + registro
   // ══════════════════════════════════════════════════════════
 
@@ -376,6 +406,33 @@ export class DocumentosService {
       }),
       map(({ error }) => {
         if (error) throw error;
+      })
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // ACTUALIZAR RESUMEN IA
+  // ══════════════════════════════════════════════════════════
+
+  /**
+   * Guarda el resumen generado por la IA en el campo
+   * `resumen_inteligencia_artificial` del documento.
+   */
+  actualizarResumenIA(documentoId: string, resumen: string): Observable<Documento> {
+    return from(
+      this.supabase
+        .from('documentos')
+        .update({
+          resumen_inteligencia_artificial: resumen,
+          ultima_actualizacion: new Date().toISOString(),
+        })
+        .eq('id', documentoId)
+        .select('*')
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error || !data) throw error ?? new Error('Error al guardar resumen IA');
+        return data as Documento;
       })
     );
   }

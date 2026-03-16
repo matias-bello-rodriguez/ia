@@ -1,27 +1,20 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
+import { filter, take } from 'rxjs/operators';
 import { DocumentosService } from '../../core/services/documentos.service';
+import { ProyectosService } from '../../core/services/proyectos.service';
 import { AuthService } from '../../core/services/auth.service';
 import { AlertService } from '../../core/services/alert.service';
 import { OpenaiService } from '../../core/services/openai.service';
-import type { Documento, EstadoSemaforo } from '../../shared/models/database.types';
-import { SEMAFORO_LABELS } from '../../shared/models/database.types';
+import type {
+  DocumentoConRelaciones,
+  ProyectoConRelaciones,
+  EstadoSemaforo,
+} from '../../shared/models/database.types';
+import { SEMAFORO_LABELS, SEMAFORO_COLORS } from '../../shared/models/database.types';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
-
-/** Tipos de documento reconocidos por el sistema */
-const TIPOS_DOCUMENTO = [
-  { value: 'Contrato', label: 'Contrato de Construcción' },
-  { value: 'Resolución Exenta', label: 'Resolución Exenta' },
-  { value: 'Informe Universidad', label: 'Informe Universidad (Xilófagos)' },
-  { value: 'Certificado Dominio', label: 'Certificado de Dominio Vigente' },
-  { value: 'Certificado Hipoteca', label: 'Certificado de Hipotecas y Gravámenes' },
-  { value: 'Permiso Edificación', label: 'Permiso de Edificación' },
-  { value: 'Recepción Municipal', label: 'Recepción Municipal' },
-  { value: 'Boleta de Garantía', label: 'Boleta de Garantía' },
-  { value: 'Tasación', label: 'Tasación' },
-  { value: 'Otro', label: 'Otro' },
-] as const;
 
 @Component({
   selector: 'app-visado',
@@ -29,36 +22,43 @@ const TIPOS_DOCUMENTO = [
   imports: [CommonModule, FormsModule],
   templateUrl: './visado.component.html',
 })
-export class VisadoComponent implements OnInit {
-  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+export class VisadoComponent implements OnInit, OnDestroy {
+  proyectos: ProyectoConRelaciones[] = [];
+  documentos: DocumentoConRelaciones[] = [];
+  cargando = true;
+  cargandoDocumentos = false;
 
-  readonly tiposDocumento = TIPOS_DOCUMENTO;
+  /** Proyecto seleccionado en el dropdown */
+  proyectoSeleccionadoId = '';
 
-  // ── Estado de formulario ──────────────────────────────────
-  selectedFile: File | null = null;
-  selectedFileName = '';
-  tipoDocumento = '';
-  proyectoId = '';
+  /** ID del documento cuyo resumen IA está expandido */
+  resumenExpandidoId: string | null = null;
 
-  // ── Resultado de subida ───────────────────────────────────
-  isUploading = false;
-  showResults = false;
-  uploadedDoc: Documento | null = null;
-  errorMsg = '';
+  /** ID del documento que se está analizando con IA */
+  analizandoDocId: string | null = null;
 
-  // ── Análisis IA (proyecto_egis) ───────────────────────────
-  analizando = false;
-  resumenIA = '';
+  /** ID del último documento cuyo análisis terminó (para mantener el panel abierto) */
+  ultimoDocAnalizadoId: string | null = null;
+
+  /** Resumen generado en vivo por la IA (mientras se analiza) */
+  resumenEnVivo = '';
   errorAnalisis = '';
 
-  // ── Cola de documentos ────────────────────────────────────
-  documentQueue: Documento[] = [];
-  loadingQueue = true;
+  readonly semaforoLabels = SEMAFORO_LABELS;
+  readonly semaforoColors = SEMAFORO_COLORS;
+
+  private subs = new Subscription();
+
+  /** Escala para renderizar PDF a imagen */
+  private readonly PDF_RENDER_SCALE = 2;
+  /** Máximo de páginas a enviar a visión */
+  private readonly MAX_PAGINAS_VISION = 10;
 
   constructor(
     private documentosService: DocumentosService,
+    private proyectosService: ProyectosService,
     private auth: AuthService,
-    private alert: AlertService,
+    private alertService: AlertService,
     private openai: OpenaiService,
   ) {}
 
@@ -66,21 +66,226 @@ export class VisadoComponent implements OnInit {
     if (typeof GlobalWorkerOptions?.workerSrc === 'undefined' || !GlobalWorkerOptions.workerSrc) {
       GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
     }
-    this.loadQueue();
+
+    this.subs.add(
+      this.auth.ready$.pipe(filter((ready) => ready), take(1)).subscribe(() => {
+        this.cargarProyectos();
+      }),
+    );
   }
 
-  /** Escala para renderizar PDF a imagen (calidad tipo 300 DPI) */
-  private readonly PDF_RENDER_SCALE = 2;
-  /** Máximo de páginas a enviar a visión cuando el PDF no tiene texto (límite coste API) */
-  private readonly MAX_PAGINAS_VISION = 10;
-
-  /** Extrae el texto de un PDF usando PDF.js (texto completo, todas las páginas). */
-  private async extraerTextoPdf(file: File): Promise<string> {
-    const porPagina = await this.extraerTextoPdfPorPagina(file);
-    return porPagina.join('\n\n') || '';
+  ngOnDestroy(): void {
+    this.subs.unsubscribe();
   }
 
-  /** Extrae el texto del PDF por página. Retorna un array: [texto página 1, texto página 2, ...]. */
+  // ══════════════════════════════════════════════════════════
+  // CARGA DE PROYECTOS Y DOCUMENTOS
+  // ══════════════════════════════════════════════════════════
+
+  private async cargarProyectos(): Promise<void> {
+    const empresaId = this.auth.getEmpresaId();
+    const rol = this.auth.getRol();
+
+    if (!empresaId || !rol) {
+      this.alertService.error('No se pudo obtener la sesión del usuario.');
+      this.cargando = false;
+      return;
+    }
+
+    try {
+      this.proyectos = await new Promise<ProyectoConRelaciones[]>((resolve, reject) => {
+        this.proyectosService.obtenerProyectosPorUsuario(empresaId, rol).subscribe({
+          next: resolve,
+          error: reject,
+        });
+      });
+    } catch (err: any) {
+      this.alertService.error('Error al cargar proyectos: ' + (err.message ?? err));
+    } finally {
+      this.cargando = false;
+    }
+  }
+
+  onProyectoSeleccionado(): void {
+    this.documentos = [];
+    this.resumenExpandidoId = null;
+    this.analizandoDocId = null;
+    this.ultimoDocAnalizadoId = null;
+    this.resumenEnVivo = '';
+    this.errorAnalisis = '';
+
+    if (!this.proyectoSeleccionadoId) return;
+
+    this.cargandoDocumentos = true;
+
+    this.documentosService.obtenerDocumentosPorProyecto(this.proyectoSeleccionadoId).subscribe({
+      next: (docs) => {
+        this.documentos = docs;
+        this.cargandoDocumentos = false;
+      },
+      error: (err) => {
+        this.alertService.error('Error al cargar documentos: ' + (err.message ?? err));
+        this.cargandoDocumentos = false;
+      },
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // TOGGLE RESUMEN EXISTENTE
+  // ══════════════════════════════════════════════════════════
+
+  toggleResumen(docId: string): void {
+    this.resumenExpandidoId = this.resumenExpandidoId === docId ? null : docId;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // ANÁLISIS IA — Descarga el PDF del bucket y lo analiza
+  // ══════════════════════════════════════════════════════════
+
+  /** Inicia el análisis IA para un documento del listado */
+  async analizarDocumentoConIA(doc: DocumentoConRelaciones): Promise<void> {
+    if (this.analizandoDocId) return; // Solo uno a la vez
+
+    const esPdf = doc.nombre_archivo.toLowerCase().endsWith('.pdf');
+    if (!esPdf) {
+      this.alertService.error('El análisis con IA solo está disponible para archivos PDF.');
+      return;
+    }
+
+    this.analizandoDocId = doc.id;
+    this.ultimoDocAnalizadoId = null;
+    this.resumenEnVivo = '';
+    this.errorAnalisis = '';
+    this.resumenExpandidoId = doc.id;
+
+    try {
+      // 1. Descargar el archivo usando el SDK de Supabase Storage
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        this.documentosService.descargarArchivo(doc.ruta_almacenamiento).subscribe({
+          next: resolve,
+          error: reject,
+        });
+      });
+      const file = new File([blob], doc.nombre_archivo, { type: 'application/pdf' });
+
+      // 2. Extraer texto por página
+      const textosPorPagina = await this.extraerTextoPdfPorPagina(file);
+      const conSuficienteTexto = textosPorPagina.some((t) => t.length >= 50);
+
+      if (conSuficienteTexto) {
+        // Resumen con texto extraído
+        await this.resumenPorPaginaConTexto(textosPorPagina, doc.nombre_archivo);
+      } else {
+        // PDF escaneado: usar visión con imágenes
+        const imagenesBase64 = await this.pdfPaginasAImagenes(file);
+        if (imagenesBase64.length === 0) {
+          this.resumenEnVivo = 'No se pudieron generar imágenes del PDF.';
+          this.analizandoDocId = null;
+          return;
+        }
+        await this.resumenPorPaginaConVision(imagenesBase64, doc.nombre_archivo);
+      }
+    } catch (err: any) {
+      this.errorAnalisis = err?.message ?? 'Error al analizar el documento.';
+      this.analizandoDocId = null;
+    }
+  }
+
+  // ── Resumen por página (texto) ────────────────────────────
+
+  private resumenPorPaginaConTexto(
+    textosPorPagina: string[],
+    nombreArchivo: string,
+  ): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const resumenes: string[] = [];
+      let index = 0;
+
+      const siguiente = () => {
+        if (index >= textosPorPagina.length) {
+          this.resumenEnVivo = resumenes.join('\n\n');
+          this.ultimoDocAnalizadoId = this.analizandoDocId;
+          this.analizandoDocId = null;
+          resolve();
+          return;
+        }
+        const textoPagina = textosPorPagina[index];
+        const numPagina = index + 1;
+        if (!textoPagina || textoPagina.length < 10) {
+          resumenes.push(`--- Página ${numPagina} ---\n(Sin texto extraíble en esta página.)`);
+          this.resumenEnVivo = resumenes.join('\n\n');
+          index++;
+          siguiente();
+          return;
+        }
+        this.openai.resumenPaginaDocumento(textoPagina, nombreArchivo, numPagina).subscribe({
+          next: (resumen) => {
+            resumenes.push(`--- Página ${numPagina} ---\n${resumen?.trim() || '—'}`);
+            this.resumenEnVivo = resumenes.join('\n\n');
+            index++;
+            siguiente();
+          },
+          error: (err: Error) => {
+            this.errorAnalisis = err?.message ?? `Error al resumir la página ${numPagina}.`;
+            this.analizandoDocId = null;
+            resolve();
+          },
+        });
+      };
+
+      siguiente();
+    });
+  }
+
+  // ── Resumen por página (visión/imagen) ────────────────────
+
+  private resumenPorPaginaConVision(
+    imagenesBase64: string[],
+    nombreArchivo: string,
+  ): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const partes: string[] = [];
+      let index = 0;
+
+      const siguiente = () => {
+        if (index >= imagenesBase64.length) {
+          this.resumenEnVivo = partes.length > 0 ? partes.join('\n\n') : 'No se pudo extraer resumen de las imágenes.';
+          this.ultimoDocAnalizadoId = this.analizandoDocId;
+          this.analizandoDocId = null;
+          resolve();
+          return;
+        }
+        const numPagina = index + 1;
+        const promptResumen = `Eres un asistente del proyecto proyecto_egis. Esta imagen es la PÁGINA ${numPagina} del documento "${nombreArchivo}".
+
+Tu tarea: haz un RESUMEN de la información más importante de ESTA página (fechas, montos, partes, requisitos, tablas). Responde en español, breve y con viñetas (•). No inventes datos.`;
+        this.openai
+          .extraerTextoDeImagen(imagenesBase64[index], `${nombreArchivo} (página ${numPagina})`, promptResumen)
+          .subscribe({
+            next: (resumen) => {
+              partes.push(`--- Página ${numPagina} ---\n${resumen?.trim() || '—'}`);
+              this.resumenEnVivo = partes.join('\n\n');
+              index++;
+              siguiente();
+            },
+            error: (err: Error) => {
+              this.errorAnalisis = err?.message ?? 'Error al analizar la imagen con IA.';
+              this.analizandoDocId = null;
+              resolve();
+            },
+          });
+      };
+
+      siguiente();
+    });
+  }
+
+
+
+  // ══════════════════════════════════════════════════════════
+  // PDF.js — Extracción de texto e imágenes
+  // ══════════════════════════════════════════════════════════
+
   private async extraerTextoPdfPorPagina(file: File): Promise<string[]> {
     const data = new Uint8Array(await file.arrayBuffer());
     const pdf = await getDocument({ data }).promise;
@@ -97,10 +302,9 @@ export class VisadoComponent implements OnInit {
     return partes;
   }
 
-  /** Renderiza una página del PDF a imagen PNG (base64). */
   private async renderizarPaginaPdfComoImagen(
     pdf: { getPage(i: number): Promise<{ getViewport(o: { scale: number }): { width: number; height: number }; render(o: object): { promise: Promise<void> } }> },
-    pageNum: number
+    pageNum: number,
   ): Promise<string> {
     const page = await pdf.getPage(pageNum);
     const viewport = page.getViewport({ scale: this.PDF_RENDER_SCALE });
@@ -109,16 +313,12 @@ export class VisadoComponent implements OnInit {
     canvas.height = viewport.height;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('No se pudo obtener contexto 2d');
-    const renderTask = page.render({
-      canvasContext: ctx,
-      viewport,
-    });
+    const renderTask = page.render({ canvasContext: ctx, viewport });
     await renderTask.promise;
     const dataUrl = canvas.toDataURL('image/png');
     return dataUrl.replace(/^data:image\/png;base64,/, '');
   }
 
-  /** Convierte las páginas del PDF a imágenes (base64). Máximo MAX_PAGINAS_VISION. */
   private async pdfPaginasAImagenes(file: File): Promise<string[]> {
     const data = new Uint8Array(await file.arrayBuffer());
     const pdf = await getDocument({ data }).promise;
@@ -131,237 +331,42 @@ export class VisadoComponent implements OnInit {
     return bases;
   }
 
-  // ── Carga de archivos ─────────────────────────────────────
+  // ══════════════════════════════════════════════════════════
+  // ACCIONES EGIS — Aprobar / Rechazar
+  // ══════════════════════════════════════════════════════════
 
-  onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files?.length) {
-      this.selectedFile = input.files[0];
-      this.selectedFileName = this.selectedFile.name;
-      this.showResults = false;
-      this.errorMsg = '';
-      this.resumenIA = '';
-      this.errorAnalisis = '';
-    }
-  }
-
-  onDrop(event: DragEvent): void {
-    event.preventDefault();
-    const file = event.dataTransfer?.files[0];
-    if (file) {
-      this.selectedFile = file;
-      this.selectedFileName = file.name;
-      this.showResults = false;
-      this.errorMsg = '';
-      this.resumenIA = '';
-      this.errorAnalisis = '';
-    }
-  }
-
-  onDragOver(event: DragEvent): void {
-    event.preventDefault();
-  }
-
-  triggerFileInput(): void {
-    this.fileInput?.nativeElement?.click();
-  }
-
-  clearFile(): void {
-    this.selectedFile = null;
-    this.selectedFileName = '';
-    this.showResults = false;
-    this.errorMsg = '';
-    this.resumenIA = '';
-    this.errorAnalisis = '';
-    if (this.fileInput) this.fileInput.nativeElement.value = '';
-  }
-
-  // ── Cola de documentos (todos los que el usuario puede ver) ──
-
-  loadQueue(): void {
-    this.loadingQueue = true;
-    this.documentosService.getAll().subscribe({
-      next: (list: Documento[]) => {
-        this.documentQueue = list;
-        this.loadingQueue = false;
+  aprobarDocumento(doc: DocumentoConRelaciones): void {
+    this.documentosService.aprobar(doc.id, 'Aprobado por EGIS').subscribe({
+      next: (actualizado) => {
+        doc.estado_actual = actualizado.estado_actual;
+        this.alertService.success('Documento aprobado correctamente.');
       },
-      error: () => {
-        this.loadingQueue = false;
-      },
+      error: (err) => this.alertService.error('Error al aprobar: ' + (err.message ?? err)),
     });
   }
 
-  get filteredQueue(): Documento[] {
-    return this.documentQueue;
+  rechazarDocumento(doc: DocumentoConRelaciones): void {
+    const motivo = prompt('Ingrese el motivo del rechazo:');
+    if (!motivo) return;
+
+    this.documentosService.rechazar(doc.id, motivo).subscribe({
+      next: (actualizado) => {
+        doc.estado_actual = actualizado.estado_actual;
+        this.alertService.success('Documento rechazado.');
+      },
+      error: (err) => this.alertService.error('Error al rechazar: ' + (err.message ?? err)),
+    });
   }
 
-  // ── Subir documento ───────────────────────────────────────
-
-  get canUpload(): boolean {
-    return !!this.selectedFile && !!this.tipoDocumento && !!this.proyectoId && !this.isUploading;
+  esAprobado(doc: DocumentoConRelaciones): boolean {
+    return doc.estado_actual === 'aprobado_verde';
   }
 
-  /** Analiza el documento seleccionado con IA (proyecto_egis) y muestra el resumen en Resultado. */
-  analizarConIA(): void {
-    const file = this.selectedFile;
-    if (!file) {
-      this.alert.warning('Seleccione un documento.');
-      return;
-    }
-    const nombre = this.selectedFileName || file.name;
-    const esPdf = file.type === 'application/pdf' || nombre.toLowerCase().endsWith('.pdf');
-    if (!esPdf) {
-      this.errorAnalisis = 'El análisis con IA solo está disponible para archivos PDF.';
-      this.showResults = true;
-      this.resumenIA = '';
-      return;
-    }
-    this.analizando = true;
-    this.errorAnalisis = '';
-    this.resumenIA = '';
-    this.showResults = true;
-
-    this.extraerTextoPdfPorPagina(file)
-      .then((textosPorPagina) => {
-        const conSuficienteTexto = textosPorPagina.some((t) => t.length >= 50);
-        if (conSuficienteTexto) {
-          this.resumenPorPaginaConTexto(textosPorPagina, nombre);
-          return;
-        }
-        // PDF sin texto extraíble (escaneo, imagen): convertir páginas a imagen y resumen por página con visión
-        this.pdfPaginasAImagenes(file)
-          .then((imagenesBase64) => {
-            if (imagenesBase64.length === 0) {
-              this.resumenIA = 'No se pudieron generar imágenes del PDF.';
-              this.analizando = false;
-              return;
-            }
-            this.resumenPorPaginaConVision(imagenesBase64, nombre);
-          })
-          .catch((err: Error) => {
-            this.errorAnalisis = err?.message ?? 'Error al convertir el PDF a imágenes.';
-            this.analizando = false;
-          });
-      })
-      .catch((err: Error) => {
-        this.errorAnalisis = err?.message ?? 'Error al leer el PDF.';
-        this.analizando = false;
-      });
-  }
-
-  /** Genera un resumen por página usando el texto extraído del PDF. */
-  private resumenPorPaginaConTexto(textosPorPagina: string[], nombreArchivo: string): void {
-    const resumenes: string[] = [];
-    let index = 0;
-
-    const siguiente = () => {
-      if (index >= textosPorPagina.length) {
-        this.resumenIA = resumenes.join('\n\n');
-        this.analizando = false;
-        return;
-      }
-      const textoPagina = textosPorPagina[index];
-      const numPagina = index + 1;
-      if (!textoPagina || textoPagina.length < 10) {
-        resumenes.push(`--- Página ${numPagina} ---\n(Sin texto extraíble en esta página.)`);
-        index++;
-        siguiente();
-        return;
-      }
-      this.openai.resumenPaginaDocumento(textoPagina, nombreArchivo, numPagina).subscribe({
-        next: (resumen) => {
-          resumenes.push(`--- Página ${numPagina} ---\n${resumen?.trim() || '—'}`);
-          index++;
-          siguiente();
-        },
-        error: (err: Error) => {
-          this.errorAnalisis = err?.message ?? `Error al resumir la página ${numPagina}.`;
-          this.analizando = false;
-        },
-      });
-    };
-
-    siguiente();
-  }
-
-  /**
-   * Genera un resumen por página usando visión (imagen de cada página).
-   */
-  private resumenPorPaginaConVision(imagenesBase64: string[], nombreArchivo: string): void {
-    const partes: string[] = [];
-    let index = 0;
-
-    const siguiente = () => {
-      if (index >= imagenesBase64.length) {
-        this.resumenIA = partes.length > 0 ? partes.join('\n\n') : 'No se pudo extraer resumen de las imágenes.';
-        this.analizando = false;
-        return;
-      }
-      const numPagina = index + 1;
-      const promptResumen = `Eres un asistente del proyecto proyecto_egis. Esta imagen es la PÁGINA ${numPagina} del documento "${nombreArchivo}".
-
-Tu tarea: haz un RESUMEN de la información más importante de ESTA página (fechas, montos, partes, requisitos, tablas). Responde en español, breve y con viñetas (•). No inventes datos.`;
-      this.openai
-        .extraerTextoDeImagen(imagenesBase64[index], `${nombreArchivo} (página ${numPagina})`, promptResumen)
-        .subscribe({
-          next: (resumen) => {
-            partes.push(`--- Página ${numPagina} ---\n${resumen?.trim() || '—'}`);
-            index++;
-            siguiente();
-          },
-          error: (err: Error) => {
-            this.errorAnalisis = err?.message ?? 'Error al analizar la imagen con IA.';
-            this.analizando = false;
-          },
-        });
-    };
-
-    siguiente();
-  }
-
-  upload(): void {
-    if (!this.canUpload) return;
-    this.isUploading = true;
-    this.showResults = false;
-    this.errorMsg = '';
-
-    this.documentosService
-      .subirDocumento(this.selectedFile!, this.proyectoId, this.tipoDocumento)
-      .subscribe({
-        next: (doc: Documento) => {
-          this.uploadedDoc = doc;
-          this.isUploading = false;
-          this.showResults = true;
-          this.alert.success('Documento subido exitosamente con estado "Pendiente".');
-          this.loadQueue();
-        },
-        error: (err: Error) => {
-          this.isUploading = false;
-          this.showResults = false;
-          this.errorMsg = err?.message ?? 'Error al subir documento.';
-        },
-      });
-  }
-
-  // ── Helpers de UI ─────────────────────────────────────────
-
-  semaforoClass(estado?: EstadoSemaforo): string {
-    if (estado === 'aprobado_verde') return 'text-bg-success';
-    if (estado === 'pendiente_amarillo') return 'text-bg-warning';
-    if (estado === 'en_proceso_naranja') return 'text-bg-info';
-    if (estado === 'rechazado_rojo') return 'text-bg-danger';
-    return 'text-bg-secondary';
+  esRechazado(doc: DocumentoConRelaciones): boolean {
+    return doc.estado_actual === 'rechazado_rojo';
   }
 
   semaforoLabel(estado?: EstadoSemaforo): string {
     return estado ? SEMAFORO_LABELS[estado] : '—';
-  }
-
-  semaforoIcon(estado?: EstadoSemaforo): string {
-    if (estado === 'aprobado_verde') return 'bi-check-circle-fill';
-    if (estado === 'pendiente_amarillo') return 'bi-exclamation-triangle-fill';
-    if (estado === 'en_proceso_naranja') return 'bi-hourglass-split';
-    if (estado === 'rechazado_rojo') return 'bi-x-circle-fill';
-    return 'bi-question-circle';
   }
 }

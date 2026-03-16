@@ -1,5 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
+import { filter, take } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 import { DocumentosService } from '../../core/services/documentos.service';
 import { ProyectosService } from '../../core/services/proyectos.service';
@@ -14,16 +17,22 @@ import { SEMAFORO_LABELS, SEMAFORO_COLORS } from '../../shared/models/database.t
 @Component({
   selector: 'app-egis-documentos',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './egis-documentos.component.html',
 })
-export class EgisDocumentosComponent implements OnInit {
+export class EgisDocumentosComponent implements OnInit, OnDestroy {
   proyectos: ProyectoConRelaciones[] = [];
   documentos: DocumentoConRelaciones[] = [];
   cargando = true;
+  cargandoDocumentos = false;
+
+  proyectoSeleccionadoId = '';
+  resumenExpandidoId: string | null = null;
 
   readonly semaforoLabels = SEMAFORO_LABELS;
   readonly semaforoColors = SEMAFORO_COLORS;
+
+  private subs = new Subscription();
 
   constructor(
     private auth: AuthService,
@@ -33,47 +42,66 @@ export class EgisDocumentosComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.cargarDatos();
+    this.subs.add(
+      this.auth.ready$.pipe(filter((ready) => ready), take(1)).subscribe(() => {
+        this.cargarProyectos();
+      }),
+    );
   }
 
-  private async cargarDatos(): Promise<void> {
+  ngOnDestroy(): void {
+    this.subs.unsubscribe();
+  }
+
+  /** Carga solo la lista de proyectos asignados al EGIS */
+  private async cargarProyectos(): Promise<void> {
     const empresaId = this.auth.getEmpresaId();
     const rol = this.auth.getRol();
 
     if (!empresaId || !rol) {
-      console.log(!empresaId || !rol);
       this.alertService.error('No se pudo obtener la sesión del usuario.');
       this.cargando = false;
       return;
-      
     }
 
     try {
-      // 1. Obtener proyectos del EGIS
       this.proyectos = await new Promise<ProyectoConRelaciones[]>((resolve, reject) => {
         this.proyectosService.obtenerProyectosPorUsuario(empresaId, rol).subscribe({
           next: resolve,
           error: reject,
         });
       });
-
-      // 2. Obtener documentos de todos los proyectos
-      const docsPromises = this.proyectos.map(
-        (p) =>
-          new Promise<DocumentoConRelaciones[]>((resolve, reject) => {
-            this.documentosService.obtenerDocumentosPorProyecto(p.id).subscribe({
-              next: resolve,
-              error: reject,
-            });
-          }),
-      );
-      const docsArrays = await Promise.all(docsPromises);
-      this.documentos = docsArrays.flat();
     } catch (err: any) {
-      this.alertService.error('Error al cargar documentos: ' + (err.message ?? err));
+      this.alertService.error('Error al cargar proyectos: ' + (err.message ?? err));
     } finally {
       this.cargando = false;
     }
+  }
+
+  /** Al cambiar el proyecto seleccionado, carga los documentos de ese proyecto */
+  onProyectoSeleccionado(): void {
+    this.documentos = [];
+    this.resumenExpandidoId = null;
+
+    if (!this.proyectoSeleccionadoId) return;
+
+    this.cargandoDocumentos = true;
+
+    this.documentosService.obtenerDocumentosPorProyecto(this.proyectoSeleccionadoId).subscribe({
+      next: (docs) => {
+        this.documentos = docs;
+        this.cargandoDocumentos = false;
+      },
+      error: (err) => {
+        this.alertService.error('Error al cargar documentos: ' + (err.message ?? err));
+        this.cargandoDocumentos = false;
+      },
+    });
+  }
+
+  /** Toggle para expandir/colapsar el resumen IA de un documento */
+  toggleResumen(docId: string): void {
+    this.resumenExpandidoId = this.resumenExpandidoId === docId ? null : docId;
   }
 
   aprobarDocumento(doc: DocumentoConRelaciones): void {

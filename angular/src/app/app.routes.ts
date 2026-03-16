@@ -24,13 +24,6 @@ export const routes: Routes = [
           import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
       },
       {
-        path: 'documentos',
-        loadComponent: () =>
-          import('./features/egis-documentos/egis-documentos.component').then(
-            (m) => m.EgisDocumentosComponent,
-          ),
-      },
-      {
         path: 'comites',
         loadComponent: () =>
           import('./features/comites/comites.component').then((m) => m.ComitesComponent),

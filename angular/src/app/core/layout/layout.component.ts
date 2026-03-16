@@ -6,9 +6,9 @@ import { SupabaseService } from '../../supabase.service';
 
 const MODULE_TITLES: Record<string, { title: string; description: string }> = {
   dashboard: { title: 'Dashboard Global', description: 'Visión general del estado de la EGIS' },
-  documentos: { title: 'Documentos EGIS', description: 'Solicitar, revisar y aprobar documentación' },
+
   comites: { title: 'Comités y Fichas Técnicas', description: 'Gestión de proyectos y beneficiarios' },
-  visado: { title: 'Visado Inteligente OCR', description: 'Validación de documentos con IA' },
+  visado: { title: 'Documentos de Proyecto', description: 'Documentación subida por la Constructora — Resumen IA' },
   semaforo: { title: 'Semáforo de Proyectos', description: 'Estado de carpetas por proyecto (Constructora)' },
   documento: { title: 'Visor de Documento', description: 'PDF + Análisis IA lado a lado' },
   'firma-digital': { title: 'Firma Digital HITO', description: 'Firma electrónica de cierre de carpeta' },

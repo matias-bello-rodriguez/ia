@@ -1,169 +1,249 @@
 <div class="d-flex flex-column gap-4">
-  <div class="row g-4">
-    <!-- Panel izquierdo: Subida de documento -->
-    <div class="col-12 col-lg-6">
-      <div class="card">
-        <div class="card-header">
-          <h6 class="mb-0"><i class="bi bi-cloud-upload me-2"></i>Subir Documento</h6>
-          <small class="text-body-secondary">Seleccione un archivo, tipo de documento y proyecto</small>
+  <!-- Selector de proyecto -->
+  <div class="card">
+    <div class="card-header">
+      <h6 class="mb-0"><i class="bi bi-folder2-open me-2"></i>Documentos de Proyecto</h6>
+      <small class="text-body-secondary">Seleccione un proyecto para ver los documentos subidos por la constructora y su resumen IA.</small>
+    </div>
+    <div class="card-body">
+      @if (cargando) {
+        <div class="d-flex align-items-center justify-content-center gap-3 py-4 text-body-secondary">
+          <div class="spinner-border spinner-border-sm text-primary"></div>
+          <span>Cargando proyectos…</span>
         </div>
-        <div class="card-body">
-          <!-- Área de drop / selección de archivo -->
-          <div
-            class="bg-light rounded d-flex flex-column align-items-center justify-content-center gap-2 cursor-pointer mb-3"
-            style="min-height: 160px;"
-            (click)="triggerFileInput()"
-            (keydown.enter)="triggerFileInput()"
-            (dragover)="onDragOver($event)"
-            (drop)="onDrop($event)"
-            tabindex="0"
-            role="button"
-          >
-            <i class="bi bi-file-earmark-arrow-up fs-2 text-body-secondary"></i>
-            @if (selectedFileName) {
-              <span class="small font-monospace fw-medium">{{ selectedFileName }}</span>
-              <button type="button" class="btn btn-sm btn-outline-danger" (click)="clearFile(); $event.stopPropagation()">
-                <i class="bi bi-x-lg me-1"></i>Quitar
-              </button>
-            } @else {
-              <span class="small text-body-secondary">Arrastra un archivo aquí o haz clic para seleccionar</span>
-              <span class="small text-body-secondary">PDF, JPG, PNG — máx. 10MB</span>
-            }
-          </div>
-          <input #fileInput type="file" class="d-none" (change)="onFileSelected($event)" accept=".pdf,.jpg,.jpeg,.png" />
-
-          <!-- Tipo de documento -->
-          <div class="mb-3">
-            <label class="form-label">Tipo de Documento</label>
-            <select class="form-select" [(ngModel)]="tipoDocumento">
-              <option value="">Seleccione...</option>
-              @for (tipo of tiposDocumento; track tipo.value) {
-                <option [value]="tipo.value">{{ tipo.label }}</option>
+      } @else {
+        <div class="row g-3 align-items-end">
+          <div class="col-12 col-md-8">
+            <label class="form-label fw-medium">Proyecto</label>
+            <select
+              class="form-select"
+              [(ngModel)]="proyectoSeleccionadoId"
+              (ngModelChange)="onProyectoSeleccionado()">
+              <option value="">Seleccione un proyecto…</option>
+              @for (p of proyectos; track p.id) {
+                <option [value]="p.id">
+                  {{ p.tipo_subsidio }} — {{ p.beneficiario?.nombre_completo ?? p.beneficiario_id }}
+                </option>
               }
             </select>
           </div>
-
-          <!-- ID del proyecto -->
-          <div class="mb-3">
-            <label class="form-label">ID del Proyecto</label>
-            <input type="text" class="form-control" [(ngModel)]="proyectoId" placeholder="UUID del proyecto" />
-          </div>
-
-          @if (errorMsg) {
-            <div class="alert alert-danger small py-2">{{ errorMsg }}</div>
-          }
-
-          <div class="d-flex flex-column gap-2">
-            <button
-              type="button"
-              class="btn btn-primary-otic btn-auto-width w-100"
-              [disabled]="!canUpload"
-              (click)="upload()"
-            >
-              @if (isUploading) {
-                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                Subiendo...
-              } @else {
-                <i class="bi bi-upload me-1"></i>Subir documento
-              }
-            </button>
-            <button
-              type="button"
-              class="btn btn-outline-primary w-100"
-              [disabled]="!selectedFile || analizando"
-              (click)="analizarConIA()"
-            >
-              @if (analizando) {
-                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                Analizando con IA...
-              } @else {
-                <i class="bi bi-robot me-1"></i>Analizar con IA
-              }
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Panel derecho: Resultado de subida -->
-    <div class="col-12 col-lg-6">
-      <div class="card h-100">
-        <div class="card-header">
-          <h6 class="mb-0"><i class="bi bi-check2-square me-2"></i>Resultado</h6>
-        </div>
-        <div class="card-body">
-          @if (analizando) {
-            <div class="d-flex flex-column align-items-center justify-content-center gap-3 py-4">
-              <div class="spinner-border text-primary"></div>
-              <span class="small text-body-secondary">Leyendo el PDF y extrayendo la información con IA (proyecto_egis)...</span>
-            </div>
-          } @else if (errorAnalisis) {
-            <div class="alert alert-danger small py-2 mb-0">{{ errorAnalisis }}</div>
-          } @else if (resumenIA) {
-            <div class="d-flex flex-column gap-2">
-              <div class="small fw-medium text-body-secondary">Resumen por página — información más importante de cada página</div>
-              <div class="border rounded p-3 bg-light small" style="white-space: pre-wrap;">{{ resumenIA }}</div>
-            </div>
-          } @else if (showResults && uploadedDoc) {
-            <div class="d-flex flex-column gap-3">
-              <div class="alert alert-success small py-2 mb-0">
-                <i class="bi bi-check-circle me-1"></i>Documento subido exitosamente.
-              </div>
-              <div class="border rounded p-3">
-                <div class="d-flex justify-content-between align-items-start">
-                  <div>
-                    <div class="fw-medium">{{ uploadedDoc.nombre_archivo }}</div>
-                    <small class="text-body-secondary">{{ uploadedDoc.tipo_documento }}</small>
-                  </div>
-                  <span class="badge" [ngClass]="semaforoClass(uploadedDoc.estado_actual)">
-                    {{ semaforoLabel(uploadedDoc.estado_actual) }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          } @else {
-            <div class="d-flex flex-column align-items-center justify-content-center gap-3 text-body-secondary" style="min-height: 200px;">
-              <i class="bi bi-inbox fs-1"></i>
-              <span class="small">Sube un documento o usa «Analizar con IA» para ver el resultado aquí</span>
-            </div>
-          }
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Cola de documentos -->
-  <div class="card">
-    <div class="card-header">
-      <h6 class="mb-0"><i class="bi bi-list-check me-2"></i>Documentos del Sistema</h6>
-      <small class="text-body-secondary">Todos los documentos cargados</small>
-    </div>
-    <div class="card-body">
-      @if (loadingQueue) {
-        <div class="d-flex flex-column align-items-center justify-content-center gap-3 text-body-secondary py-4">
-          <div class="spinner-border text-primary"></div>
-          <span>Cargando documentos...</span>
-        </div>
-      } @else if (filteredQueue.length === 0) {
-        <p class="text-body-secondary small mb-0">No hay documentos cargados.</p>
-      } @else {
-        <div class="d-flex flex-column gap-2">
-          @for (doc of filteredQueue; track doc.id) {
-            <div class="d-flex align-items-center justify-content-between border rounded p-3">
-              <div class="d-flex align-items-center gap-3">
-                <i class="bi" [class]="semaforoIcon(doc.estado_actual)"></i>
-                <div>
-                  <div class="fw-medium font-monospace small">{{ doc.nombre_archivo }}</div>
-                  <div class="small text-body-secondary">{{ doc.tipo_documento }}</div>
-                </div>
-              </div>
-              <span class="badge" [ngClass]="semaforoClass(doc.estado_actual)">
-                {{ semaforoLabel(doc.estado_actual) }}
+          <div class="col-12 col-md-4">
+            @if (proyectoSeleccionadoId && !cargandoDocumentos) {
+              <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
+                {{ documentos.length }} documento(s)
               </span>
-            </div>
-          }
+            }
+          </div>
         </div>
       }
     </div>
   </div>
+
+  <!-- Estado de carga de documentos -->
+  @if (cargandoDocumentos) {
+    <div class="d-flex align-items-center justify-content-center gap-3 py-4 text-body-secondary">
+      <div class="spinner-border text-primary"></div>
+      <span>Cargando documentos del proyecto…</span>
+    </div>
+  }
+
+  <!-- Sin proyecto seleccionado -->
+  @if (!proyectoSeleccionadoId && !cargando && !cargandoDocumentos) {
+    <div class="card">
+      <div class="card-body text-center py-5 text-body-secondary">
+        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+        <span>Seleccione un proyecto para ver sus documentos.</span>
+      </div>
+    </div>
+  }
+
+  <!-- Sin documentos para este proyecto -->
+  @if (proyectoSeleccionadoId && !cargandoDocumentos && documentos.length === 0) {
+    <div class="card">
+      <div class="card-body text-center py-5 text-body-secondary">
+        <i class="bi bi-file-earmark-x fs-1 d-block mb-2"></i>
+        <span>No hay documentos subidos para este proyecto.</span>
+      </div>
+    </div>
+  }
+
+  <!-- Layout: Tabla (izquierda) + Panel IA (derecha) -->
+  @if (!cargandoDocumentos && documentos.length > 0) {
+    <div class="row g-4">
+
+      <!-- Columna izquierda: Tabla de documentos -->
+      <div [class]="(resumenExpandidoId || analizandoDocId || ultimoDocAnalizadoId) ? 'col-12 col-xl-7' : 'col-12'">
+        <div class="card h-100">
+          <div class="card-header">
+            <h6 class="mb-0"><i class="bi bi-list-check me-2"></i>Documentos del Proyecto</h6>
+            <small class="text-body-secondary">Revise cada documento, analice con IA y apruebe o rechace</small>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th class="ps-3" style="width: 40px;">#</th>
+                    <th>Documento</th>
+                    <th>Tipo</th>
+                    <th>Fecha</th>
+                    <th class="text-center">Estado</th>
+                    <th class="text-center">IA</th>
+                    <th class="text-center">Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (doc of documentos; track doc.id; let i = $index) {
+                    <tr
+                      [class.table-active]="resumenExpandidoId === doc.id || analizandoDocId === doc.id || ultimoDocAnalizadoId === doc.id"
+                      style="cursor: default;">
+                      <td class="ps-3 text-body-secondary small">{{ i + 1 }}</td>
+                      <td>
+                        <div class="fw-medium font-monospace small text-truncate" style="max-width: 200px;">{{ doc.nombre_archivo }}</div>
+                      </td>
+                      <td class="text-body-secondary small">{{ doc.tipo_documento }}</td>
+                      <td class="text-body-secondary small">{{ doc.fecha_subida | date:'yyyy-MM-dd' }}</td>
+                      <td class="text-center">
+                        <span
+                          class="badge rounded-pill"
+                          [style.background-color]="semaforoColors[doc.estado_actual] + '22'"
+                          [style.color]="semaforoColors[doc.estado_actual]">
+                          {{ semaforoLabels[doc.estado_actual] }}
+                        </span>
+                      </td>
+                      <td class="text-center">
+                        <!-- Ver Resumen (ya existe en BD) -->
+                        @if (doc.resumen_inteligencia_artificial && analizandoDocId !== doc.id) {
+                          <button
+                            type="button"
+                            class="btn btn-sm"
+                            [class]="resumenExpandidoId === doc.id ? 'btn-primary' : 'btn-outline-primary'"
+                            (click)="toggleResumen(doc.id)">
+                            <i class="bi me-1" [class]="resumenExpandidoId === doc.id ? 'bi-eye-slash' : 'bi-robot'"></i>
+                            {{ resumenExpandidoId === doc.id ? 'Ocultar' : 'Ver' }}
+                          </button>
+                        }
+                        <!-- Analizar con IA (sin resumen) -->
+                        @if (!doc.resumen_inteligencia_artificial && analizandoDocId !== doc.id) {
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-primary"
+                            [disabled]="!!analizandoDocId"
+                            (click)="analizarDocumentoConIA(doc)">
+                            <i class="bi bi-robot me-1"></i>Analizar
+                          </button>
+                        }
+                        <!-- Analizando -->
+                        @if (analizandoDocId === doc.id) {
+                          <span class="d-inline-flex align-items-center gap-1 text-primary small">
+                            <span class="spinner-border spinner-border-sm"></span>
+                            IA…
+                          </span>
+                        }
+                      </td>
+                      <td class="text-center">
+                        <div class="d-flex gap-1 justify-content-center">
+                          @if (!esAprobado(doc)) {
+                            <button
+                              type="button"
+                              class="btn btn-sm btn-success"
+                              (click)="aprobarDocumento(doc)"
+                              title="Aprobar">
+                              <i class="bi bi-check-lg"></i>
+                            </button>
+                          }
+                          @if (!esRechazado(doc)) {
+                            <button
+                              type="button"
+                              class="btn btn-sm btn-outline-danger"
+                              (click)="rechazarDocumento(doc)"
+                              title="Rechazar">
+                              <i class="bi bi-x-lg"></i>
+                            </button>
+                          }
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna derecha: Panel de Resumen IA -->
+      @if (resumenExpandidoId || analizandoDocId || ultimoDocAnalizadoId) {
+        <div class="col-12 col-xl-5">
+          <div class="card h-100 border-primary border-opacity-25" style="position: sticky; top: 1rem;">
+            @for (doc of documentos; track doc.id) {
+
+              <!-- Resumen IA existente (de BD) -->
+              @if (resumenExpandidoId === doc.id && doc.resumen_inteligencia_artificial && analizandoDocId !== doc.id && ultimoDocAnalizadoId !== doc.id) {
+                <div class="card-header bg-primary bg-opacity-10 border-primary border-opacity-25">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                      <h6 class="mb-0 text-primary"><i class="bi bi-robot me-2"></i>Resumen IA</h6>
+                      <small class="text-body-secondary font-monospace">{{ doc.nombre_archivo }}</small>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" (click)="toggleResumen(doc.id)">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="card-body overflow-auto" style="max-height: 70vh;">
+                  <div class="small" style="white-space: pre-wrap;">{{ doc.resumen_inteligencia_artificial }}</div>
+                </div>
+              }
+
+              <!-- Análisis IA en vivo (cargando) -->
+              @if (analizandoDocId === doc.id) {
+                <div class="card-header border-primary border-opacity-25" style="background-color: #eef2ff;">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="spinner-border spinner-border-sm text-primary"></div>
+                    <div>
+                      <h6 class="mb-0 text-primary"><i class="bi bi-robot me-2"></i>Análisis IA en progreso</h6>
+                      <small class="text-body-secondary font-monospace">{{ doc.nombre_archivo }}</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-body overflow-auto" style="max-height: 70vh;">
+                  @if (errorAnalisis) {
+                    <div class="alert alert-danger small py-2 mb-0">{{ errorAnalisis }}</div>
+                  } @else if (resumenEnVivo) {
+                    <div class="small" style="white-space: pre-wrap;">{{ resumenEnVivo }}</div>
+                  } @else {
+                    <div class="d-flex flex-column align-items-center justify-content-center gap-3 py-5 text-body-secondary">
+                      <div class="spinner-border text-primary"></div>
+                      <span class="small">Descargando y leyendo el PDF…</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- Análisis IA completado (resultado en memoria) -->
+              @if (ultimoDocAnalizadoId === doc.id && !analizandoDocId) {
+                <div class="card-header bg-success bg-opacity-10 border-success border-opacity-25">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                      <h6 class="mb-0 text-success"><i class="bi bi-check-circle me-2"></i>Análisis IA completado</h6>
+                      <small class="text-body-secondary font-monospace">{{ doc.nombre_archivo }}</small>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-success" (click)="ultimoDocAnalizadoId = null">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="card-body overflow-auto" style="max-height: 70vh;">
+                  <div class="small" style="white-space: pre-wrap;">{{ resumenEnVivo }}</div>
+                </div>
+              }
+
+            }
+          </div>
+        </div>
+      }
+
+    </div>
+  }
 </div>

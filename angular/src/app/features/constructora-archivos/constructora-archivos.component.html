@@ -10,12 +10,13 @@
   <ng-container *ngIf="!cargando">
     <!-- Formulario de subida -->
     <div class="bg-white rounded-lg shadow p-6 mb-6">
-      <h3 class="text-lg font-semibold text-gray-700 mb-4">Subir nuevo documento</h3>
+      <h3 class="text-lg font-semibold text-gray-700 mb-4">Subir documentos</h3>
       <div class="flex flex-col sm:flex-row gap-4 items-end">
         <div class="flex-1">
           <label class="block text-sm font-medium text-gray-600 mb-1">Proyecto</label>
           <select
             [(ngModel)]="proyectoSeleccionadoId"
+            (ngModelChange)="onProyectoChange()"
             class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
             <option value="">Seleccione un proyecto…</option>
             <option *ngFor="let p of proyectos" [value]="p.id">
@@ -35,32 +36,86 @@
           <label
             class="inline-flex items-center gap-2 px-4 py-2 rounded text-sm font-medium transition-colors cursor-pointer"
             [class]="subiendo ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'">
-            <span *ngIf="subiendo">Subiendo…</span>
-            <span *ngIf="!subiendo">📎 Seleccionar Archivo</span>
+            <span>📎 Seleccionar Archivos</span>
             <input
               type="file"
+              multiple
               class="hidden"
-              (change)="onFileSelected($event)"
+              (change)="onFilesSelected($event)"
               [disabled]="subiendo" />
           </label>
         </div>
       </div>
+
+      <!-- Lista de archivos seleccionados con progreso -->
+      <div *ngIf="progresoSubida.length > 0" class="mt-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-gray-700">
+            {{ archivosSeleccionados.length }} archivo(s) seleccionado(s)
+          </span>
+          <div class="space-x-2">
+            <button
+              *ngIf="!subiendo"
+              (click)="limpiarSeleccion()"
+              class="px-3 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+              Limpiar
+            </button>
+            <button
+              (click)="subirLote()"
+              [disabled]="subiendo"
+              class="px-4 py-1.5 rounded text-sm font-medium transition-colors"
+              [class]="subiendo ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'">
+              {{ subiendo ? 'Subiendo…' : '🚀 Subir Todos' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <div
+            *ngFor="let item of progresoSubida; let i = index"
+            class="flex items-center gap-3 px-3 py-2 rounded text-sm"
+            [ngClass]="{
+              'bg-gray-50 text-gray-600': item.estado === 'pendiente',
+              'bg-blue-50 text-blue-700': item.estado === 'subiendo',
+              'bg-green-50 text-green-700': item.estado === 'ok',
+              'bg-red-50 text-red-700': item.estado === 'error'
+            }">
+            <!-- Icono de estado -->
+            <span *ngIf="item.estado === 'pendiente'">⏳</span>
+            <span *ngIf="item.estado === 'subiendo'" class="animate-spin">⏳</span>
+            <span *ngIf="item.estado === 'ok'">✅</span>
+            <span *ngIf="item.estado === 'error'">❌</span>
+
+            <span class="flex-1 truncate">{{ item.nombre }}</span>
+            <span *ngIf="item.mensaje" class="text-xs opacity-75">{{ item.mensaje }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading documentos -->
+    <div *ngIf="cargandoDocumentos" class="flex justify-center py-8">
+      <span class="text-gray-500">Cargando documentos…</span>
+    </div>
+
+    <!-- Sin proyecto seleccionado -->
+    <div *ngIf="!proyectoSeleccionadoId && !cargandoDocumentos" class="text-center py-12 text-gray-400">
+      Seleccione un proyecto para ver sus documentos.
     </div>
 
     <!-- Sin documentos -->
-    <div *ngIf="documentos.length === 0" class="text-center py-12 text-gray-400">
-      No hay documentos subidos aún.
+    <div *ngIf="proyectoSeleccionadoId && !cargandoDocumentos && documentos.length === 0" class="text-center py-12 text-gray-400">
+      No hay documentos subidos aún para este proyecto.
     </div>
 
     <!-- Tabla de documentos -->
-    <div *ngIf="documentos.length > 0" class="overflow-x-auto bg-white rounded-lg shadow">
+    <div *ngIf="!cargandoDocumentos && documentos.length > 0" class="overflow-x-auto bg-white rounded-lg shadow">
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">#</th>
             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Archivo</th>
             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tipo</th>
-            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Proyecto</th>
             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Fecha</th>
             <th class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Semáforo</th>
           </tr>
@@ -70,7 +125,6 @@
             <td class="px-6 py-4 text-sm text-gray-600">{{ i + 1 }}</td>
             <td class="px-6 py-4 text-sm font-medium text-gray-800">{{ doc.nombre_archivo }}</td>
             <td class="px-6 py-4 text-sm text-gray-600">{{ doc.tipo_documento }}</td>
-            <td class="px-6 py-4 text-sm text-gray-600">{{ getNombreProyecto(doc) }}</td>
             <td class="px-6 py-4 text-sm text-gray-600">{{ doc.fecha_subida | date:'yyyy-MM-dd' }}</td>
             <td class="px-6 py-4 text-center">
               <span
