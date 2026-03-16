@@ -1,0 +1,11 @@
+{
+  "/api/openai": {
+    "target": "https://api.openai.com",
+    "secure": true,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/api/openai": ""
+    },
+    "logLevel": "debug"
+  }
+}

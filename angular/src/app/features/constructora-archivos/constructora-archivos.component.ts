@@ -67,18 +67,9 @@ export class ConstructoraArchivosComponent implements OnInit, OnDestroy {
 
   /** Carga la lista de proyectos de la constructora */
   private async cargarProyectos(): Promise<void> {
-    const empresaId = this.auth.getEmpresaId();
-    const rol = this.auth.getRol();
-
-    if (!empresaId || !rol) {
-      this.alertService.error('No se pudo obtener la sesión del usuario.');
-      this.cargando = false;
-      return;
-    }
-
     try {
       this.proyectos = await new Promise<ProyectoConRelaciones[]>((resolve, reject) => {
-        this.proyectosService.obtenerProyectosPorUsuario(empresaId, rol).subscribe({
+        this.proyectosService.obtenerProyectosPorUsuario().subscribe({
           next: resolve,
           error: reject,
         });

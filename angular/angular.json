@@ -42,7 +42,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": { "buildTarget": "egis-pro:build:production" },
-            "development": { "buildTarget": "egis-pro:build:development" }
+            "development": {
+              "buildTarget": "egis-pro:build:development",
+              "proxyConfig": "proxy.conf.json"
+            }
           },
           "defaultConfiguration": "development"
         },

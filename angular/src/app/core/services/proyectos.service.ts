@@ -1,18 +1,39 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { from, map, Observable } from 'rxjs';
 import { getSupabaseClient } from './supabase-client';
+import { environment } from '../../../environments/environment';
 import type {
   Proyecto,
   ProyectoInsert,
   ProyectoConRelaciones,
   EstadoProyecto,
-  RolUsuario,
 } from '../../shared/models/database.types';
-import { esRolEgis, esRolConstructora } from '../../shared/models/database.types';
 
 @Injectable({ providedIn: 'root' })
 export class ProyectosService {
   private supabase = getSupabaseClient();
+
+  constructor(private http: HttpClient) {}
+
+  // ══════════════════════════════════════════════════════════
+  // MIGRADO A NESTJS — usa HttpClient + interceptor JWT
+  // ══════════════════════════════════════════════════════════
+
+  /**
+   * Obtener proyectos filtrados por empresa según el rol del usuario.
+   * Ahora delegado al backend NestJS (GET /api/proyectos).
+   * El interceptor adjunta automáticamente el Bearer token.
+   */
+  obtenerProyectosPorUsuario(): Observable<ProyectoConRelaciones[]> {
+    return this.http.get<ProyectoConRelaciones[]>(
+      `${environment.apiUrl}/proyectos`,
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // PENDIENTES DE MIGRAR — siguen usando Supabase directo
+  // ══════════════════════════════════════════════════════════
 
   /** Obtener todos los proyectos (RLS filtra por empresa) */
   getAll(): Observable<Proyecto[]> {
@@ -101,36 +122,5 @@ export class ProyectosService {
   /** Asignar constructora a un proyecto */
   asignarConstructora(proyectoId: string, constructoraId: string): Observable<Proyecto> {
     return this.update(proyectoId, { constructora_id: constructoraId });
-  }
-
-  /**
-   * Obtener proyectos filtrados por empresa según el rol del usuario.
-   * - Roles EGIS → filtra por egis_id
-   * - Roles Constructora → filtra por constructora_id
-   * - Otros roles → devuelve todos (RLS protege igualmente)
-   */
-  obtenerProyectosPorUsuario(
-    empresaId: string,
-    rol: RolUsuario,
-  ): Observable<ProyectoConRelaciones[]> {
-    let query = this.supabase
-      .from('proyectos')
-      .select(
-        '*, beneficiario:beneficiarios(*), egis:empresas!egis_id(*), constructora:empresas!constructora_id(*)'
-      )
-      .order('fecha_creacion', { ascending: false });
-
-    if (esRolEgis(rol)) {
-      query = query.eq('egis_id', empresaId);
-    } else if (esRolConstructora(rol)) {
-      query = query.eq('constructora_id', empresaId);
-    }
-
-    return from(query).pipe(
-      map(({ data, error }) => {
-        if (error) throw error;
-        return (data ?? []) as ProyectoConRelaciones[];
-      }),
-    );
   }
 }

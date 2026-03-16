@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { createClient, Session, SupabaseClient } from '@supabase/supabase-js';
+import { processLock } from '@supabase/auth-js';
 import { environment } from '../environments/environment';
 
 // ══════════════════════════════════════════════════════════════
@@ -19,6 +20,10 @@ const supabase: SupabaseClient = (() => {
       autoRefreshToken: true,
       detectSessionInUrl: true,
       storage: localStorage,
+      // En desarrollo usamos processLock (in-process) para evitar el error
+      // "Acquiring an exclusive Navigator LockManager lock" causado por HMR.
+      // En producción dejamos undefined → Supabase usa navigatorLock (multi-tab sync).
+      ...(environment.production ? {} : { lock: processLock }),
     },
   });
 
