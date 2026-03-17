@@ -15,7 +15,8 @@ export const environment = {
   apiBaseUrl: '' as string,
 
   openaiUrl: 'https://api.openai.com/v1/chat/completions',
-  openaiApiKey: '' as string,
+  openaiApiKey: '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',
+
 
   /** Nombre del bucket de Storage para documentos */
   storageBucket: 'documentos_proyectos',
