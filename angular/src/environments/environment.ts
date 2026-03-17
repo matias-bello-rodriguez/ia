@@ -12,7 +12,7 @@ export const environment = {
 
   /** OpenAI URL — en desarrollo pasa por el proxy de Vite (ver proxy.conf.json) */
   openaiUrl: '/api/openai/v1/chat/completions',
-  openaiApiKey: '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',
+  openaiApiKey: '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',
   
   /** Nombre del bucket de Storage para documentos */
   storageBucket: 'documentos_proyectos',

@@ -13,7 +13,22 @@ export class ProyectosController {
    */
   @UseGuards(SupabaseAuthGuard)
   @Get()
-  async obtenerProyectos(@Req() req: { user: JwtPayload }) {
-    return this.proyectosService.obtenerProyectosPorUsuario(req.user.sub);
+  async obtenerProyectos(
+    @Req()
+    req: {
+      user: JwtPayload;
+      headers?: { authorization?: string };
+    },
+  ) {
+    const authHeader = req.headers?.authorization ?? '';
+    const accessToken = authHeader.startsWith('Bearer ')
+      ? authHeader.slice('Bearer '.length).trim()
+      : '';
+
+    return this.proyectosService.obtenerProyectosPorUsuario(
+      req.user.sub,
+      req.user.email,
+      accessToken,
+    );
   }
 }

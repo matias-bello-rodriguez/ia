@@ -26,6 +26,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'supabase-jwt') {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
+      // El JWT secret de Supabase se usa como string plano (HS256)
       secretOrKey: secret,
       algorithms: ['HS256'],
     } satisfies StrategyOptionsWithoutRequest);

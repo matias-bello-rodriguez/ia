@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service.js';
 
 /** Roles que pertenecen a EGIS */
@@ -22,24 +22,61 @@ export class ProyectosService {
    *    - Roles Constructora → `constructora_id = empresa_id`
    *    - Otros             → todos los proyectos (sin filtro extra)
    */
-  async obtenerProyectosPorUsuario(authUserId: string): Promise<unknown[]> {
-    const client = this.supabase.getClient();
+  async obtenerProyectosPorUsuario(
+    authUserId: string,
+    userEmail?: string,
+    accessToken?: string,
+  ): Promise<unknown[]> {
+    if (!accessToken) {
+      throw new InternalServerErrorException(
+        'No se recibio access token para consultar proyectos.',
+      );
+    }
+
+    const client = this.supabase.getUserClient(accessToken);
 
     // ── 1. Obtener perfil del usuario ───────────────────────
-    const { data: usuario, error: errUsr } = await client
+    const { data: usuarioPorId, error: errUsr } = await client
       .from('usuarios')
       .select('empresa_id, rol')
       .eq('id', authUserId)
       .single();
 
-    if (errUsr || !usuario) {
-      this.logger.warn(`Usuario no encontrado: ${authUserId}`);
-      throw new NotFoundException(
-        `No se encontró el perfil del usuario con id=${authUserId}`,
+    if (errUsr) {
+      this.logger.error(
+        `Error consultando perfil en usuarios. code=${errUsr.code ?? 'N/A'} message=${errUsr.message}`,
+      );
+      throw new InternalServerErrorException(
+        'El backend no tiene permisos para leer perfiles de usuario en Supabase.',
       );
     }
 
-    const { empresa_id, rol } = usuario as { empresa_id: string; rol: string };
+    let usuario = usuarioPorId as { empresa_id: string; rol: string } | null;
+
+    // Compatibilidad: si el perfil no existe por id, intentamos por correo.
+    if (!usuario && userEmail) {
+      const { data: usuarioPorCorreo } = await client
+        .from('usuarios')
+        .select('empresa_id, rol')
+        .eq('correo', userEmail)
+        .maybeSingle();
+
+      if (usuarioPorCorreo) {
+        this.logger.warn(
+          `Perfil encontrado por correo (${userEmail}) pero no por id (${authUserId}).`,
+        );
+        usuario = usuarioPorCorreo as { empresa_id: string; rol: string };
+      }
+    }
+
+    if (!usuario) {
+      this.logger.warn(
+        `Perfil no encontrado para usuario auth id=${authUserId} email=${userEmail ?? 'N/A'}. Se retorna lista vacia.`,
+      );
+      return [];
+    }
+
+    const { empresa_id, rol } = usuario;
 
     // ── 2. Construir query de proyectos ─────────────────────
     let query = client
