@@ -1,16 +1,15 @@
 # Render — Solo frontend Angular (Supabase)
+# Build desde la raíz del repo para evitar problemas con Root Directory
 # https://docs.render.com/blueprint-spec
 
 services:
   - type: web
     runtime: static
     name: egis-app
-    rootDir: angular
-
-    buildCommand: npm ci && npx ng build --configuration=production
+    # Sin rootDir: build desde raíz del repo (package.json en raíz)
+    buildCommand: npm run build
     staticPublishPath: angular/dist/egis-pro
 
-    # SPA: rutas de Angular a index.html
     routes:
       - type: rewrite
         source: /*

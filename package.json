@@ -1,0 +1,7 @@
+{
+  "name": "egis-monorepo",
+  "private": true,
+  "scripts": {
+    "build": "cd angular && npm ci && npx ng build --configuration=production"
+  }
+}
