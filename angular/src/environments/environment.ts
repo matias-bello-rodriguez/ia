@@ -14,5 +14,5 @@ export const environment = {
   apiBaseUrl: '',
   /** OpenAI: en dev llamada directa (o proxy si usas backend local). */
   openaiUrl: 'https://api.openai.com/v1/chat/completions',
-  openaiApiKey: '',
+  openaiApiKey: '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',
 };
