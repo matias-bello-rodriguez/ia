@@ -8,21 +8,35 @@ import { environment } from '../../../environments/environment';
 export class OpenaiService {
   constructor(private http: HttpClient) {}
 
+  private getOpenaiUrl(): string {
+    if (environment.apiBaseUrl) {
+      return environment.apiBaseUrl.replace(/\/$/, '') + '/api/openai/v1/responses';
+    }
+    return environment.openaiUrl;
+  }
+
+  private getOpenaiHeaders(): HttpHeaders {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (environment.openaiApiKey) {
+      headers['Authorization'] = `Bearer ${environment.openaiApiKey}`;
+    }
+    return new HttpHeaders(headers);
+  }
+
   /**
    * Envía un prompt a la API de OpenAI (proyecto_egis).
+   * En producción con apiBaseUrl usa el proxy del backend (no envía key).
    */
   askGPT(prompt: string): Observable<string> {
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${environment.openaiApiKey}`,
-    });
     const body = {
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 1024,
     };
     return this.http
-      .post<{ choices?: Array<{ message?: { content?: string } }> }>(environment.openaiUrl, body, { headers })
+      .post<{ choices?: Array<{ message?: { content?: string } }> }>(this.getOpenaiUrl(), body, {
+        headers: this.getOpenaiHeaders(),
+      })
       .pipe(
         map((res) => res.choices?.[0]?.message?.content?.trim() ?? '')
       );
@@ -37,10 +51,6 @@ export class OpenaiService {
 
 Tu tarea: extrae TODO el texto visible en la imagen y la información más importante (fechas, montos, partes, requisitos, tablas, formularios). Responde en español, de forma clara. Usa viñetas (•) para los puntos. No inventes datos.`;
 
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${environment.openaiApiKey}`,
-    });
     const body = {
       model: 'gpt-4o-mini',
       messages: [
@@ -58,7 +68,9 @@ Tu tarea: extrae TODO el texto visible en la imagen y la información más impor
       max_tokens: 1024,
     };
     return this.http
-      .post<{ choices?: Array<{ message?: { content?: string } }> }>(environment.openaiUrl, body, { headers })
+      .post<{ choices?: Array<{ message?: { content?: string } }> }>(this.getOpenaiUrl(), body, {
+        headers: this.getOpenaiHeaders(),
+      })
       .pipe(
         map((res) => res.choices?.[0]?.message?.content?.trim() ?? '')
       );

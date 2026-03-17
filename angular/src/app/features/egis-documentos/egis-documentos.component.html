@@ -79,6 +79,12 @@
               </td>
               <td class="px-6 py-4 text-center space-x-2">
                 <button
+                  (click)="descargarDocumento(doc)"
+                  class="px-3 py-1.5 rounded text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                  title="Descargar">
+                  Descargar
+                </button>
+                <button
                   *ngIf="!esAprobado(doc)"
                   (click)="aprobarDocumento(doc)"
                   class="px-3 py-1.5 rounded text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors">

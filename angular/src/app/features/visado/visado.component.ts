@@ -358,6 +358,17 @@ Tu tarea: haz un RESUMEN de la información más importante de ESTA página (fec
     });
   }
 
+  descargarDocumento(doc: DocumentoConRelaciones): void {
+    if (!doc.ruta_almacenamiento) {
+      this.alertService.error('No hay archivo asociado para descargar.');
+      return;
+    }
+    this.documentosService.descargarYGuardar(doc.ruta_almacenamiento, doc.nombre_archivo ?? 'documento').subscribe({
+      next: () => this.alertService.success('Descarga iniciada.'),
+      error: (err) => this.alertService.error('Error al descargar: ' + (err.message ?? err)),
+    });
+  }
+
   esAprobado(doc: DocumentoConRelaciones): boolean {
     return doc.estado_actual === 'aprobado_verde';
   }

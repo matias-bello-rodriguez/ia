@@ -166,9 +166,18 @@
                         <div class="text-body-secondary" style="font-size: 0.75rem;">{{ doc.tipo_documento }}</div>
                       </div>
                     </div>
-                    <span class="badge" [ngClass]="semaforoBg(doc.estado_actual)">
-                      {{ semaforoLabel(doc.estado_actual) }}
-                    </span>
+                    <div class="d-flex align-items-center gap-2">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-secondary"
+                        (click)="descargarDocumento(doc)"
+                        title="Descargar">
+                        <i class="bi bi-download"></i>
+                      </button>
+                      <span class="badge" [ngClass]="semaforoBg(doc.estado_actual)">
+                        {{ semaforoLabel(doc.estado_actual) }}
+                      </span>
+                    </div>
                   </div>
                   @if (doc.resumen_inteligencia_artificial) {
                     <div class="mt-2 bg-light rounded p-2 small text-body-secondary">

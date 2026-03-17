@@ -1,0 +1,17 @@
+# Render — Solo frontend Angular (Supabase)
+# https://docs.render.com/blueprint-spec
+
+services:
+  - type: web
+    runtime: static
+    name: egis-app
+    rootDir: angular
+
+    buildCommand: npm ci && npx ng build --configuration=production
+    staticPublishPath: angular/dist/egis-pro
+
+    # SPA: rutas de Angular a index.html
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DocumentosService } from '../../core/services/documentos.service';
 import { ProyectosService } from '../../core/services/proyectos.service';
+import { AlertService } from '../../core/services/alert.service';
 import type { Documento, ProyectoConRelaciones, EstadoSemaforo } from '../../shared/models/database.types';
 import { SEMAFORO_LABELS, SEMAFORO_COLORS } from '../../shared/models/database.types';
 
@@ -42,6 +43,7 @@ export class FirmaDigitalComponent {
   constructor(
     private documentosService: DocumentosService,
     private proyectosService: ProyectosService,
+    private alertService: AlertService,
   ) {}
 
   // ── Cargar proyecto ───────────────────────────────────────
@@ -103,6 +105,17 @@ export class FirmaDigitalComponent {
 
   estadoColor(estado: EstadoSemaforo): string {
     return this.semaforoColors[estado] ?? '#6c757d';
+  }
+
+  descargarDocumento(doc: Documento): void {
+    if (!doc.ruta_almacenamiento) {
+      this.alertService.error('No hay archivo asociado para descargar.');
+      return;
+    }
+    this.documentosService.descargarYGuardar(doc.ruta_almacenamiento, doc.nombre_archivo ?? 'documento').subscribe({
+      next: () => this.alertService.success('Descarga iniciada.'),
+      error: (err) => this.alertService.error('Error al descargar: ' + (err.message ?? err)),
+    });
   }
 
   // ── Firmar ────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { from, map, Observable, switchMap, throwError } from 'rxjs';
+import { from, map, Observable, switchMap, tap, throwError } from 'rxjs';
 import { getSupabaseClient } from './supabase-client';
 import { AuthService } from './auth.service';
 import { environment } from '../../../environments/environment';
@@ -361,6 +361,24 @@ export class DocumentosService {
         if (error || !data) throw error ?? new Error('Error al descargar archivo del storage');
         return data;
       })
+    );
+  }
+
+  /**
+   * Descarga el archivo desde Storage y dispara la descarga en el navegador
+   * (crea un enlace temporal con el nombre indicado).
+   */
+  descargarYGuardar(rutaAlmacenamiento: string, nombreArchivo: string): Observable<void> {
+    return this.descargarArchivo(rutaAlmacenamiento).pipe(
+      tap((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = nombreArchivo || 'documento';
+        a.click();
+        URL.revokeObjectURL(url);
+      }),
+      map(() => undefined)
     );
   }
 

@@ -73,6 +73,13 @@
                 </div>
               </div>
               <div class="d-flex gap-2 align-items-center">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  (click)="descargarDocumento(doc)"
+                  title="Descargar">
+                  <i class="bi bi-download"></i>
+                </button>
                 <span class="badge" [style.background]="estadoColor(doc.estado_actual)" style="color: white;">
                   {{ estadoLabel(doc.estado_actual) }}
                 </span>

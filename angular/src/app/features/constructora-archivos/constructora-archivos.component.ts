@@ -202,6 +202,17 @@ export class ConstructoraArchivosComponent implements OnInit, OnDestroy {
     });
   }
 
+  descargarDocumento(doc: DocumentoConRelaciones): void {
+    if (!doc.ruta_almacenamiento) {
+      this.alertService.error('No hay archivo asociado para descargar.');
+      return;
+    }
+    this.documentosService.descargarYGuardar(doc.ruta_almacenamiento, doc.nombre_archivo ?? 'documento').subscribe({
+      next: () => this.alertService.success('Descarga iniciada.'),
+      error: (err) => this.alertService.error('Error al descargar: ' + (err.message ?? err)),
+    });
+  }
+
   getNombreProyecto(doc: DocumentoConRelaciones): string {
     return doc.proyecto?.tipo_subsidio ?? 'Sin proyecto';
   }

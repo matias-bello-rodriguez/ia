@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ProyectosService } from '../../core/services/proyectos.service';
 import { DocumentosService } from '../../core/services/documentos.service';
+import { AlertService } from '../../core/services/alert.service';
 import type {
   ProyectoConRelaciones,
   Documento,
@@ -39,6 +40,7 @@ export class SemaforoComponent implements OnInit {
   constructor(
     private proyectosService: ProyectosService,
     private documentosService: DocumentosService,
+    private alertService: AlertService,
   ) {}
 
   ngOnInit(): void {
@@ -105,6 +107,17 @@ export class SemaforoComponent implements OnInit {
   backToList(): void {
     this.selectedProyecto = null;
     this.documentosDetalle = [];
+  }
+
+  descargarDocumento(doc: Documento): void {
+    if (!doc.ruta_almacenamiento) {
+      this.alertService.error('No hay archivo asociado para descargar.');
+      return;
+    }
+    this.documentosService.descargarYGuardar(doc.ruta_almacenamiento, doc.nombre_archivo ?? 'documento').subscribe({
+      next: () => this.alertService.success('Descarga iniciada.'),
+      error: (err) => this.alertService.error('Error al descargar: ' + (err.message ?? err)),
+    });
   }
 
   // ── Helpers de UI ─────────────────────────────────────────

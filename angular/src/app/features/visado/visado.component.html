@@ -142,7 +142,14 @@
                         }
                       </td>
                       <td class="text-center">
-                        <div class="d-flex gap-1 justify-content-center">
+                        <div class="d-flex gap-1 justify-content-center align-items-center">
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-outline-secondary"
+                            (click)="descargarDocumento(doc)"
+                            title="Descargar">
+                            <i class="bi bi-download"></i>
+                          </button>
                           @if (!esAprobado(doc)) {
                             <button
                               type="button"
